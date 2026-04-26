@@ -4,19 +4,20 @@ Use this after the codebase is pushed to GitHub and you want a clean public foot
 
 ## GitHub repository
 
-1. **Create the repo** (empty, no README) on GitHub if you have not already.
-2. **Push** from your machine:
+1. **Replace placeholders** in [`package.json`](../package.json) (`repository.url`) and in [`README.md`](../README.md) (Vercel “Deploy” button `repository-url`, live-demo table) with your real GitHub username and repo name.
+2. **Create the repo** (empty, no README) on GitHub if you have not already.
+3. **Push** from your machine:
    ```bash
    git remote add origin https://github.com/<you>/<repo>.git
    git branch -M main
    git push -u origin main
    ```
-3. **Repository details** (Settings → General):
+4. **Repository details** (Settings → General):
    - **Description:** e.g. `OpenWorldEye — OSINT globe: flights, satellites, quakes, events (react-globe.gl).`
    - **Website:** paste your **Vercel production URL** once it exists (step below).
-4. **Topics (tags):** on the repo main page, click the gear next to “About” → **Topics**, then add labels such as:
+5. **Topics (tags):** on the repo main page, click the gear next to “About” → **Topics**, then add labels such as:
    - `osint`, `geospatial`, `react`, `vite`, `threejs`, `globe`, `opensky`, `usgs`, `celestrak`, `typescript`, `vercel`
-5. **Releases (optional):** Tags like `v0.1.0` help others pin versions:
+6. **Releases (optional):** Tags like `v0.1.0` help others pin versions:
    ```bash
    git tag -a v0.1.0 -m "Initial public command deck"
    git push origin v0.1.0
