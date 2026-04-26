@@ -4,12 +4,13 @@
 
 | | |
 | --- | --- |
-| **Live demo** | After you deploy: replace this cell with your Vercel URL, e.g. `https://openworldeye.vercel.app` |
-| **Docs** | [docs/README.md](docs/README.md) · [Publish checklist (GitHub + Vercel)](docs/PUBLISH_CHECKLIST.md) · [Branding](BRANDING.md) |
+| **Live demo** | **GitHub Pages:** [https://chama-x.github.io/openworldeye/](https://chama-x.github.io/openworldeye/) (after the first workflow run finishes, enable *Pages → gh-pages* if the site is 404 — see checklist). |
+| **Repository** | [github.com/chama-x/openworldeye](https://github.com/chama-x/openworldeye) |
+| **Docs** | [docs/README.md](docs/README.md) · [Publish checklist](docs/PUBLISH_CHECKLIST.md) · [Branding](BRANDING.md) |
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/YOUR_GITHUB_USERNAME/openworldeye)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fchama-x%2Fopenworldeye)
 
-*(Update the `repository-url` query parameter after your repo exists on GitHub.)*
+*(Optional: clone into Vercel for previews; primary static hosting uses GitHub Actions → `gh-pages`.)*
 
 ## Quick start
 
@@ -60,7 +61,7 @@ docs/
 git init
 git add .
 git commit -m "chore: initial OpenWorldEye release"
-git remote add origin https://github.com/<you>/<repo>.git
+git remote add origin https://github.com/chama-x/openworldeye.git
 git branch -M main
 git push -u origin main
 ```

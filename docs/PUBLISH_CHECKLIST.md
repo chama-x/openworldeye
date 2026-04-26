@@ -45,7 +45,7 @@ Use this after the codebase is pushed to GitHub and you want a clean public foot
 ## README hygiene
 
 - Replace placeholder `https://github.com/<you>/<repo>` in the root `README.md` with your real repo URL.
-- Replace `https://your-app.vercel.app` with your real Vercel production URL once deployed.
+- Replace the **Live demo** table cell in `README.md` with your real Vercel production URL once deployed.
 
 ## Smoke test on production
 
