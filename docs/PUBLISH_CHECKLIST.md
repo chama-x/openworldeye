@@ -14,9 +14,7 @@ OpenWorldEye is deployed with **Vercel** only (`vercel.json` + Vite static `dist
    vercel --prod   # production
    ```
 3. **Environment variables:** Project → Settings → Environment Variables — add optional `VITE_GROQ_API_KEY` / `VITE_GROQ_MODEL` for the Intelligence panel. Redeploy after edits.
-4. Copy the **production** URL and paste it into:
-   - GitHub **About → Website**
-   - Root `README.md` → **Live demo** table cell
+4. **Production URL** (this project): [https://openworldeye.vercel.app/](https://openworldeye.vercel.app/) — keep GitHub **About → Website** and the root `README.md` live-demo row in sync when the alias changes.
 
 ## GitHub repository
 

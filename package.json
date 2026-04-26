@@ -19,6 +19,7 @@
     "type": "git",
     "url": "https://github.com/chama-x/openworldeye.git"
   },
+  "homepage": "https://openworldeye.vercel.app/",
   "license": "MIT",
   "scripts": {
     "dev": "vite",

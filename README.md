@@ -4,11 +4,11 @@
 
 | | |
 | --- | --- |
-| **Live demo** | Deploy on **Vercel** (see [Deploy with Vercel](#deploy-with-vercel)), then paste your production URL here, e.g. `https://openworldeye.vercel.app` |
+| **Live demo** | **[openworldeye.vercel.app](https://openworldeye.vercel.app/)** — production (Vite static build on Vercel) |
 | **Repository** | [github.com/chama-x/openworldeye](https://github.com/chama-x/openworldeye) |
 | **Docs** | [docs/README.md](docs/README.md) · [Publish checklist](docs/PUBLISH_CHECKLIST.md) · [Branding](BRANDING.md) |
 
-Hosting is **Vercel only** (static Vite build). Do not use GitHub Pages for this project.
+Production is hosted on **Vercel** only ([dashboard](https://vercel.com/dashboard)). Redeploy from the Vercel UI or with `vercel --prod` after `git push`.
 
 ## Quick start
 
