@@ -57,7 +57,7 @@ export default function GlobalTimelineScrubber() {
           {formatUtc(currentTime)}
         </div>
 
-        <div className="flex gap-1">
+        <div className="flex gap-1" role="group" aria-label="Clock mode">
           {(["LIVE", "PAUSED", "REPLAY"] as ClockMode[]).map((m) => (
             <button
               key={m}
@@ -110,10 +110,19 @@ export default function GlobalTimelineScrubber() {
             onChange={(e) => onSlider(Number(e.target.value) / 1000)}
             className="h-1 w-full cursor-pointer accent-[#00FF9C] disabled:cursor-not-allowed disabled:opacity-40"
             aria-label="Scrub simulated time within last 24 hours"
+            aria-valuemin={0}
+            aria-valuemax={1000}
+            aria-valuenow={Math.round(sliderValue * 1000)}
           />
-          <p className="font-mono text-[9px] leading-tight text-[rgba(0,255,156,0.35)]">
-            Scrub affects TLE satellite propagation. Live OpenSky/USGS payloads stay “now” until historical feeds exist.
-          </p>
+          {mode === "LIVE" ? (
+            <p className="font-mono text-[9px] leading-tight text-[rgba(255,184,0,0.65)]">
+              Switch to PAUSED or REPLAY to scrub the simulated clock. LIVE tracks wall time.
+            </p>
+          ) : (
+            <p className="font-mono text-[9px] leading-tight text-[rgba(0,255,156,0.35)]">
+              Scrub affects TLE satellite propagation. Live OpenSky/USGS payloads stay “now” until historical feeds exist.
+            </p>
+          )}
         </div>
 
         <div className="flex gap-1">

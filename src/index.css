@@ -144,6 +144,17 @@
     @apply cursor-pointer;
   }
 
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible,
+  [role="button"]:focus-visible,
+  [tabindex]:not([tabindex="-1"]):focus-visible {
+    outline: 2px solid rgba(0, 255, 156, 0.55);
+    outline-offset: 2px;
+  }
+
   /* Scrollbar styling for tactical aesthetic */
   ::-webkit-scrollbar {
     width: 6px;
@@ -209,6 +220,16 @@
       transparent 3px
     );
     z-index: 50;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .scanlines::after {
+      display: none;
+    }
+    .data-shimmer {
+      animation: none !important;
+      background: rgba(0, 255, 156, 0.08);
+    }
   }
 
   /* Tactical panel base */
@@ -333,5 +354,13 @@
     font-size: 0.7rem;
     letter-spacing: 0.05em;
     color: rgba(0, 255, 156, 0.7);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pulse-live,
+    .radar-rotate,
+    .marker-pulse {
+      animation: none;
+    }
   }
 }

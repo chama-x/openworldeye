@@ -16,6 +16,16 @@ import * as satellite from "satellite.js";
 // TYPE DEFINITIONS
 // ============================================================
 
+/** live = network OK; fallback = error path sample data; static = bundled sample (no network) */
+export type FeedSource = "live" | "fallback" | "static";
+
+export interface DataFeedResult<T> {
+  records: T[];
+  source: FeedSource;
+  /** Human-readable reason when source is fallback */
+  errorMessage?: string;
+}
+
 export interface Aircraft {
   icao24: string;
   callsign: string;
@@ -61,16 +71,13 @@ export interface ConflictEvent {
 // ============================================================
 // AIRCRAFT - OpenSky Network
 // ============================================================
-// Public endpoint: https://opensky-network.org/api/states/all
-// Anonymous: 100 req/day | Authenticated: 4000 req/day
-// We bound the query to a region to keep payloads light.
 
 export async function fetchAircraft(bbox?: {
   lamin: number;
   lomin: number;
   lamax: number;
   lomax: number;
-}): Promise<Aircraft[]> {
+}): Promise<DataFeedResult<Aircraft>> {
   const params = bbox
     ? `?lamin=${bbox.lamin}&lomin=${bbox.lomin}&lamax=${bbox.lamax}&lomax=${bbox.lomax}`
     : "";
@@ -80,9 +87,11 @@ export async function fetchAircraft(bbox?: {
     const res = await fetch(url);
     if (!res.ok) throw new Error(`OpenSky returned ${res.status}`);
     const data = await res.json();
-    if (!data.states) return [];
+    if (!data.states) {
+      return { records: [], source: "live" };
+    }
 
-    return data.states
+    const records = data.states
       .filter((s: (number | string | boolean | null)[]) => s[5] !== null && s[6] !== null)
       .slice(0, 500)
       .map((s: (number | string | boolean | null)[]) => ({
@@ -96,9 +105,16 @@ export async function fetchAircraft(bbox?: {
         heading: s[10] || 0,
         on_ground: s[8] || false,
       })) as Aircraft[];
+
+    return { records, source: "live" };
   } catch (error) {
+    const msg = error instanceof Error ? error.message : "Network error";
     console.warn("[OpenSky] Fetch failed, returning sample data:", error);
-    return generateSampleAircraft();
+    return {
+      records: generateSampleAircraft(),
+      source: "fallback",
+      errorMessage: msg,
+    };
   }
 }
 
@@ -149,13 +165,26 @@ const TLE_GROUPS = {
   geo: "https://celestrak.org/NORAD/elements/gp.php?GROUP=geo&FORMAT=tle",
 };
 
-let cachedTLEs: { name: string; tle1: string; tle2: string }[] | null = null;
+interface TleRow {
+  name: string;
+  tle1: string;
+  tle2: string;
+}
+
+let cachedTles: TleRow[] | null = null;
+let cachedTleMeta: { source: FeedSource; errorMessage?: string } | null = null;
 
 export async function fetchSatelliteTLEs(
   group: keyof typeof TLE_GROUPS = "stations",
   limit = 100,
-): Promise<{ name: string; tle1: string; tle2: string }[]> {
-  if (cachedTLEs && cachedTLEs.length > 0) return cachedTLEs.slice(0, limit);
+): Promise<DataFeedResult<TleRow>> {
+  if (cachedTles && cachedTles.length > 0 && cachedTleMeta) {
+    return {
+      records: cachedTles.slice(0, limit),
+      source: cachedTleMeta.source,
+      errorMessage: cachedTleMeta.errorMessage,
+    };
+  }
 
   try {
     const res = await fetch(TLE_GROUPS[group]);
@@ -163,19 +192,24 @@ export async function fetchSatelliteTLEs(
     const text = await res.text();
     const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
 
-    const tles: { name: string; tle1: string; tle2: string }[] = [];
+    const tles: TleRow[] = [];
     for (let i = 0; i < lines.length - 2; i += 3) {
       tles.push({ name: lines[i], tle1: lines[i + 1], tle2: lines[i + 2] });
     }
-    cachedTLEs = tles;
-    return tles.slice(0, limit);
+    cachedTles = tles;
+    cachedTleMeta = { source: "live" };
+    return { records: tles.slice(0, limit), source: "live" };
   } catch (error) {
+    const msg = error instanceof Error ? error.message : "Network error";
     console.warn("[CelesTrak] Fetch failed, using sample TLEs:", error);
-    return getSampleTLEs();
+    const sample = getSampleTLEs();
+    cachedTles = sample;
+    cachedTleMeta = { source: "fallback", errorMessage: msg };
+    return { records: sample.slice(0, limit), source: "fallback", errorMessage: msg };
   }
 }
 
-function getSampleTLEs() {
+function getSampleTLEs(): TleRow[] {
   return [
     {
       name: "ISS (ZARYA)",
@@ -244,13 +278,13 @@ export function propagateSatellites(
 // EARTHQUAKES - USGS Earthquakes (last hour, magnitude >= 2.5)
 // ============================================================
 
-export async function fetchEarthquakes(): Promise<Earthquake[]> {
+export async function fetchEarthquakes(): Promise<DataFeedResult<Earthquake>> {
   const url = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.geojson";
   try {
     const res = await fetch(url);
     if (!res.ok) throw new Error(`USGS ${res.status}`);
     const data = await res.json();
-    return data.features.map((f: {
+    const records = data.features.map((f: {
       id: string;
       properties: { mag: number; place: string; time: number; url: string };
       geometry: { coordinates: number[] };
@@ -264,9 +298,15 @@ export async function fetchEarthquakes(): Promise<Earthquake[]> {
       time: f.properties.time,
       url: f.properties.url,
     }));
+    return { records, source: "live" };
   } catch (error) {
+    const msg = error instanceof Error ? error.message : "Network error";
     console.warn("[USGS] Fetch failed:", error);
-    return generateSampleEarthquakes();
+    return {
+      records: generateSampleEarthquakes(),
+      source: "fallback",
+      errorMessage: msg,
+    };
   }
 }
 
@@ -284,15 +324,18 @@ function generateSampleEarthquakes(): Earthquake[] {
 // CONFLICT EVENTS - Sample data (ACLED requires registration)
 // ============================================================
 
-export function fetchConflictEvents(): ConflictEvent[] {
-  return [
-    { id: "c1", type: "Air Strike", description: "Reported airstrike activity", longitude: 36.2765, latitude: 33.5138, time: Date.now() - 3600000, severity: "high" },
-    { id: "c2", type: "Naval Activity", description: "Increased naval presence", longitude: 122.0, latitude: 24.5, time: Date.now() - 7200000, severity: "medium" },
-    { id: "c3", type: "Border Incident", description: "Reported border activity", longitude: 38.0, latitude: 49.0, time: Date.now() - 1800000, severity: "high" },
-    { id: "c4", type: "Cyber Attack", description: "Critical infrastructure breach", longitude: -77.0369, latitude: 38.9072, time: Date.now() - 900000, severity: "high" },
-    { id: "c5", type: "Civil Unrest", description: "Large-scale protests", longitude: 2.3522, latitude: 48.8566, time: Date.now() - 5400000, severity: "medium" },
-    { id: "c6", type: "Maritime Interdiction", description: "Vessel boarding operation", longitude: 50.0, latitude: 26.0, time: Date.now() - 10800000, severity: "medium" },
-    { id: "c7", type: "Ground Operation", description: "Reported military movement", longitude: 30.5, latitude: 50.4, time: Date.now() - 600000, severity: "high" },
-    { id: "c8", type: "Drone Activity", description: "UAV reconnaissance reported", longitude: 44.0, latitude: 35.5, time: Date.now() - 2400000, severity: "medium" },
-  ];
+export function fetchConflictEvents(): DataFeedResult<ConflictEvent> {
+  return {
+    records: [
+      { id: "c1", type: "Air Strike", description: "Reported airstrike activity", longitude: 36.2765, latitude: 33.5138, time: Date.now() - 3600000, severity: "high" },
+      { id: "c2", type: "Naval Activity", description: "Increased naval presence", longitude: 122.0, latitude: 24.5, time: Date.now() - 7200000, severity: "medium" },
+      { id: "c3", type: "Border Incident", description: "Reported border activity", longitude: 38.0, latitude: 49.0, time: Date.now() - 1800000, severity: "high" },
+      { id: "c4", type: "Cyber Attack", description: "Critical infrastructure breach", longitude: -77.0369, latitude: 38.9072, time: Date.now() - 900000, severity: "high" },
+      { id: "c5", type: "Civil Unrest", description: "Large-scale protests", longitude: 2.3522, latitude: 48.8566, time: Date.now() - 5400000, severity: "medium" },
+      { id: "c6", type: "Maritime Interdiction", description: "Vessel boarding operation", longitude: 50.0, latitude: 26.0, time: Date.now() - 10800000, severity: "medium" },
+      { id: "c7", type: "Ground Operation", description: "Reported military movement", longitude: 30.5, latitude: 50.4, time: Date.now() - 600000, severity: "high" },
+      { id: "c8", type: "Drone Activity", description: "UAV reconnaissance reported", longitude: 44.0, latitude: 35.5, time: Date.now() - 2400000, severity: "medium" },
+    ],
+    source: "static",
+  };
 }

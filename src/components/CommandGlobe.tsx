@@ -17,6 +17,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Globe, { type GlobeMethods } from "react-globe.gl";
 import { useOsintSnapshot } from "@/contexts/OsintDataContext";
 import { useDataLayers } from "@/contexts/DataLayersContext";
+import { MAX_AIRCRAFT_GLOBE_POINTS } from "@/lib/constants";
+
+const AUTO_ROTATE_STORAGE_KEY = "owe.globe.autorotate";
 
 export interface MarkerLike {
   lat: number;
@@ -33,13 +36,57 @@ export interface CommandGlobeProps {
   onSelectMarker?: (m: MarkerLike | null) => void;
 }
 
+function readAutoRotatePreference(): boolean {
+  try {
+    if (typeof window === "undefined") return true;
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return false;
+    const v = sessionStorage.getItem(AUTO_ROTATE_STORAGE_KEY);
+    if (v === "0") return false;
+  } catch {
+    /* ignore */
+  }
+  return true;
+}
+
 export default function CommandGlobe({ onSelectMarker }: CommandGlobeProps) {
   const globeRef = useRef<GlobeMethods | undefined>(undefined);
   const containerRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: 800, height: 600 });
+  const [autoRotate, setAutoRotate] = useState(readAutoRotatePreference);
+  const [reduceMotion, setReduceMotion] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      Boolean(window.matchMedia?.("(prefers-reduced-motion: reduce)").matches),
+  );
 
   const { aircraft, satellites, earthquakes, conflicts } = useOsintSnapshot();
   const { layer } = useDataLayers();
+
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const onChange = () => {
+      const r = mq.matches;
+      setReduceMotion(r);
+      if (r) setAutoRotate(false);
+    };
+    onChange();
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(AUTO_ROTATE_STORAGE_KEY, autoRotate ? "1" : "0");
+    } catch {
+      /* ignore */
+    }
+  }, [autoRotate]);
+
+  const aircraftForGlobe = useMemo(() => {
+    const all = aircraft.data;
+    if (all.length <= MAX_AIRCRAFT_GLOBE_POINTS) return all;
+    return all.slice(0, MAX_AIRCRAFT_GLOBE_POINTS);
+  }, [aircraft.data]);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -52,6 +99,8 @@ export default function CommandGlobe({ onSelectMarker }: CommandGlobeProps) {
     return () => ro.disconnect();
   }, []);
 
+  const effectiveAutoRotate = autoRotate && !reduceMotion;
+
   useEffect(() => {
     if (!globeRef.current) return;
     const ctrl = globeRef.current.controls() as {
@@ -62,8 +111,6 @@ export default function CommandGlobe({ onSelectMarker }: CommandGlobeProps) {
       minDistance: number;
       maxDistance: number;
     };
-    ctrl.autoRotate = true;
-    ctrl.autoRotateSpeed = 0.35;
     ctrl.enableDamping = true;
     ctrl.dampingFactor = 0.08;
     ctrl.minDistance = 150;
@@ -71,9 +118,19 @@ export default function CommandGlobe({ onSelectMarker }: CommandGlobeProps) {
     globeRef.current.pointOfView({ lat: 25, lng: 20, altitude: 2.5 }, 1500);
   }, []);
 
+  useEffect(() => {
+    if (!globeRef.current) return;
+    const ctrl = globeRef.current.controls() as {
+      autoRotate: boolean;
+      autoRotateSpeed: number;
+    };
+    ctrl.autoRotate = effectiveAutoRotate;
+    ctrl.autoRotateSpeed = reduceMotion ? 0 : 0.35;
+  }, [effectiveAutoRotate, reduceMotion]);
+
   const aircraftPoints = useMemo<MarkerLike[]>(
     () =>
-      aircraft.data.map((a) => ({
+      aircraftForGlobe.map((a) => ({
         lat: a.latitude,
         lng: a.longitude,
         altitude: Math.max(0.005, a.altitude / 100000),
@@ -83,7 +140,7 @@ export default function CommandGlobe({ onSelectMarker }: CommandGlobeProps) {
         category: "AIRCRAFT",
         raw: a,
       })),
-    [aircraft.data, layer],
+    [aircraftForGlobe, layer],
   );
 
   const satellitePoints = useMemo<MarkerLike[]>(
@@ -151,6 +208,25 @@ export default function CommandGlobe({ onSelectMarker }: CommandGlobeProps) {
 
   return (
     <div ref={containerRef} className="absolute inset-0 overflow-hidden">
+      <div className="pointer-events-none absolute bottom-3 left-3 z-30 flex flex-col gap-1">
+        <button
+          type="button"
+          disabled={reduceMotion}
+          aria-pressed={effectiveAutoRotate}
+          aria-label={reduceMotion ? "Globe auto-rotate off (reduce motion)" : "Toggle globe auto-rotate"}
+          title={
+            reduceMotion
+              ? "Auto-rotate disabled while Reduce Motion is on"
+              : effectiveAutoRotate
+                ? "Turn off globe auto-rotate"
+                : "Turn on globe auto-rotate"
+          }
+          onClick={() => setAutoRotate((v) => !v)}
+          className="pointer-events-auto rounded border border-[rgba(0,255,156,0.35)] bg-[rgba(10,14,20,0.92)] px-2 py-1 font-mono text-[9px] uppercase tracking-wider text-[#00FF9C] shadow-lg hover:bg-[rgba(0,255,156,0.08)] disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          Rotate {effectiveAutoRotate ? "on" : "off"}
+        </button>
+      </div>
       <Globe
         ref={globeRef}
         width={size.width}

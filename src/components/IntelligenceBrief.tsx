@@ -3,12 +3,15 @@ import { useGlobalClock } from "@/contexts/GlobalClockContext";
 import { useDataLayers } from "@/contexts/DataLayersContext";
 import { useOsintSnapshot } from "@/contexts/OsintDataContext";
 import type { MarkerLike } from "@/components/CommandGlobe";
+import { MAX_AIRCRAFT_GLOBE_POINTS } from "@/lib/constants";
+import { feedStripPart } from "@/lib/feedMeta";
 
 interface IntelligenceBriefProps {
   selected: MarkerLike | null;
+  onClearSelection: () => void;
 }
 
-export default function IntelligenceBrief({ selected }: IntelligenceBriefProps) {
+export default function IntelligenceBrief({ selected, onClearSelection }: IntelligenceBriefProps) {
   const { currentTime, mode } = useGlobalClock();
   const { layers } = useDataLayers();
   const osint = useOsintSnapshot();
@@ -26,12 +29,32 @@ export default function IntelligenceBrief({ selected }: IntelligenceBriefProps) 
     [osint],
   );
 
+  const aircraftCapped = counts.air > MAX_AIRCRAFT_GLOBE_POINTS;
+
   const activeLayers = useMemo(() => layers.filter((l) => l.active).map((l) => l.label).join(" · "), [layers]);
 
   const heuristicBrief = useMemo(() => {
     const lines: string[] = [];
     lines.push(`Layers on: ${activeLayers || "—"}`);
     lines.push(`Markers — AIR ${counts.air} · ORB ${counts.orb} · SEIS ${counts.seis} · OPS ${counts.ops}`);
+    if (aircraftCapped) {
+      lines.push(
+        `Globe shows first ${MAX_AIRCRAFT_GLOBE_POINTS} aircraft only (${counts.air} in feed).`,
+      );
+    }
+    lines.push(feedStripPart("AIR", osint.aircraft.meta, osint.aircraft.loading));
+    lines.push(feedStripPart("ORB", osint.satellites.meta, osint.satellites.loading));
+    lines.push(feedStripPart("SEIS", osint.earthquakes.meta, osint.earthquakes.loading));
+    lines.push(feedStripPart("OPS", osint.conflicts.meta, osint.conflicts.loading));
+    if (osint.aircraft.meta.errorMessage && osint.aircraft.meta.source === "fallback") {
+      lines.push(`AIR fallback: ${osint.aircraft.meta.errorMessage}`);
+    }
+    if (osint.earthquakes.meta.errorMessage && osint.earthquakes.meta.source === "fallback") {
+      lines.push(`SEIS fallback: ${osint.earthquakes.meta.errorMessage}`);
+    }
+    if (osint.satellites.meta.errorMessage && osint.satellites.meta.source === "fallback") {
+      lines.push(`ORB fallback: ${osint.satellites.meta.errorMessage}`);
+    }
     if (osint.aircraft.loading || osint.satellites.loading || osint.earthquakes.loading) {
       lines.push("Status: one or more feeds loading…");
     } else {
@@ -40,7 +63,7 @@ export default function IntelligenceBrief({ selected }: IntelligenceBriefProps) 
     lines.push(`Clock mode ${mode}; sim UTC ${currentTime.toISOString()}`);
     lines.push("Note: OpenSky/USGS reflect live service time; scrub changes satellite TLE propagation only.");
     return lines.join("\n");
-  }, [activeLayers, counts, currentTime, mode, osint]);
+  }, [activeLayers, aircraftCapped, counts, currentTime, mode, osint]);
 
   const runGroq = useCallback(async () => {
     const key = import.meta.env.VITE_GROQ_API_KEY;
@@ -83,7 +106,18 @@ export default function IntelligenceBrief({ selected }: IntelligenceBriefProps) 
     <div className="tactical-panel flex h-full min-h-0 flex-col">
       <div className="tactical-panel-header">
         <span>Intelligence</span>
-        <span className="text-[rgba(0,255,156,0.45)]">BRIEF</span>
+        <span className="flex items-center gap-2">
+          <span className="text-[rgba(0,255,156,0.45)]">BRIEF</span>
+          {selected ? (
+            <button
+              type="button"
+              onClick={onClearSelection}
+              className="rounded border border-[rgba(0,255,156,0.35)] px-2 py-0.5 font-mono text-[9px] uppercase text-[#00FF9C] hover:bg-[rgba(0,255,156,0.1)]"
+            >
+              Clear
+            </button>
+          ) : null}
+        </span>
       </div>
       <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-3 font-sans text-xs text-[rgba(230,238,248,0.88)]">
         <section>
@@ -114,7 +148,9 @@ export default function IntelligenceBrief({ selected }: IntelligenceBriefProps) 
               )}
             </pre>
           ) : (
-            <p className="font-mono text-[10px] text-[rgba(0,255,156,0.35)]">Click a globe point…</p>
+            <p className="font-mono text-[10px] text-[rgba(0,255,156,0.35)]">
+              Click a globe point… (Escape clears)
+            </p>
           )}
         </section>
 

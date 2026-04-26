@@ -5,11 +5,13 @@
 
 import { createContext, useContext, useMemo, type ReactNode } from "react";
 import { useAircraft, useSatellites, useEarthquakes, useConflicts } from "@/hooks/useOsintData";
+import type { StreamMeta } from "@/hooks/useOsintData";
 import type { Aircraft, ConflictEvent, Earthquake, Satellite } from "@/lib/osint-services";
 
 export interface StreamSlice<T> {
   data: T[];
   loading: boolean;
+  meta: StreamMeta;
 }
 
 export interface OsintSnapshot {
@@ -32,15 +34,25 @@ export function OsintDataProvider({ children }: { children: ReactNode }) {
       aircraft: {
         data: aircraft.data,
         loading: aircraft.loading,
+        meta: aircraft.meta,
         refresh: aircraft.refresh,
       },
-      satellites: { data: satellites.data, loading: satellites.loading },
+      satellites: {
+        data: satellites.data,
+        loading: satellites.loading,
+        meta: satellites.meta,
+      },
       earthquakes: {
         data: earthquakes.data,
         loading: earthquakes.loading,
+        meta: earthquakes.meta,
         refresh: earthquakes.refresh,
       },
-      conflicts: { data: conflicts.data, loading: conflicts.loading },
+      conflicts: {
+        data: conflicts.data,
+        loading: conflicts.loading,
+        meta: conflicts.meta,
+      },
     }),
     [aircraft, satellites, earthquakes, conflicts],
   );

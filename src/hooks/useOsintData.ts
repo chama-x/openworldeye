@@ -8,7 +8,7 @@
  *   - ACLED-style    : in-memory only
  */
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   fetchAircraft,
   fetchEarthquakes,
@@ -18,23 +18,37 @@ import {
   type Aircraft,
   type Earthquake,
   type Satellite,
-  type ConflictEvent,
+  type FeedSource,
 } from "@/lib/osint-services";
 import { useGlobalClock } from "@/contexts/GlobalClockContext";
 import { useDataLayers } from "@/contexts/DataLayersContext";
+
+export type StreamMetaSource = FeedSource | "idle";
+
+export interface StreamMeta {
+  source: StreamMetaSource;
+  lastUpdatedAt: number | null;
+  errorMessage?: string;
+}
+
+const idleMeta: StreamMeta = { source: "idle", lastUpdatedAt: null };
 
 export function useAircraft() {
   const { isActive, layer } = useDataLayers();
   const [data, setData] = useState<Aircraft[]>([]);
   const [loading, setLoading] = useState(false);
-  const lastFetchRef = useRef<number>(0);
+  const [meta, setMeta] = useState<StreamMeta>(idleMeta);
 
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const aircraft = await fetchAircraft();
-      setData(aircraft);
-      lastFetchRef.current = Date.now();
+      const r = await fetchAircraft();
+      setData(r.records);
+      setMeta({
+        source: r.source,
+        lastUpdatedAt: Date.now(),
+        errorMessage: r.errorMessage,
+      });
     } finally {
       setLoading(false);
     }
@@ -47,7 +61,12 @@ export function useAircraft() {
     return () => clearInterval(interval);
   }, [isActive, layer, refresh]);
 
-  return { data: isActive("aircraft") ? data : [], loading, refresh };
+  return {
+    data: isActive("aircraft") ? data : [],
+    loading: isActive("aircraft") && loading,
+    refresh,
+    meta: isActive("aircraft") ? meta : idleMeta,
+  };
 }
 
 export function useSatellites() {
@@ -56,16 +75,33 @@ export function useSatellites() {
   const [tles, setTles] = useState<{ name: string; tle1: string; tle2: string }[]>([]);
   const [data, setData] = useState<Satellite[]>([]);
   const [loading, setLoading] = useState(false);
+  const [meta, setMeta] = useState<StreamMeta>(idleMeta);
 
   useEffect(() => {
     if (!isActive("satellites")) return;
     let cancelled = false;
     setLoading(true);
     fetchSatelliteTLEs("stations", 60)
-      .then((t) => !cancelled && setTles(t))
+      .then((r) => {
+        if (cancelled) return;
+        setTles(r.records);
+        setMeta({
+          source: r.source,
+          lastUpdatedAt: Date.now(),
+          errorMessage: r.errorMessage,
+        });
+      })
       .finally(() => !cancelled && setLoading(false));
     const interval = setInterval(() => {
-      fetchSatelliteTLEs("stations", 60).then((t) => !cancelled && setTles(t));
+      fetchSatelliteTLEs("stations", 60).then((r) => {
+        if (cancelled) return;
+        setTles(r.records);
+        setMeta({
+          source: r.source,
+          lastUpdatedAt: Date.now(),
+          errorMessage: r.errorMessage,
+        });
+      });
     }, layer("satellites").pollIntervalSec * 1000);
     return () => {
       cancelled = true;
@@ -81,18 +117,29 @@ export function useSatellites() {
     setData(propagateSatellites(tles, currentTime));
   }, [tles, currentTime, isActive]);
 
-  return { data, loading };
+  return {
+    data: isActive("satellites") ? data : [],
+    loading: isActive("satellites") && loading,
+    meta: isActive("satellites") ? meta : idleMeta,
+  };
 }
 
 export function useEarthquakes() {
   const { isActive, layer } = useDataLayers();
   const [data, setData] = useState<Earthquake[]>([]);
   const [loading, setLoading] = useState(false);
+  const [meta, setMeta] = useState<StreamMeta>(idleMeta);
 
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      setData(await fetchEarthquakes());
+      const r = await fetchEarthquakes();
+      setData(r.records);
+      setMeta({
+        source: r.source,
+        lastUpdatedAt: Date.now(),
+        errorMessage: r.errorMessage,
+      });
     } finally {
       setLoading(false);
     }
@@ -105,11 +152,25 @@ export function useEarthquakes() {
     return () => clearInterval(interval);
   }, [isActive, layer, refresh]);
 
-  return { data: isActive("earthquakes") ? data : [], loading, refresh };
+  return {
+    data: isActive("earthquakes") ? data : [],
+    loading: isActive("earthquakes") && loading,
+    refresh,
+    meta: isActive("earthquakes") ? meta : idleMeta,
+  };
 }
 
 export function useConflicts() {
   const { isActive } = useDataLayers();
-  const [data] = useState<ConflictEvent[]>(() => fetchConflictEvents());
-  return { data: isActive("conflicts") ? data : [], loading: false };
+  const [bundle] = useState(() => fetchConflictEvents());
+  const meta: StreamMeta = {
+    source: bundle.source,
+    lastUpdatedAt: Date.now(),
+    errorMessage: bundle.errorMessage,
+  };
+  return {
+    data: isActive("conflicts") ? bundle.records : [],
+    loading: false,
+    meta: isActive("conflicts") ? meta : idleMeta,
+  };
 }
