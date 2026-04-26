@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useGlobalClock, type ClockMode, SCRUB_WINDOW_MS } from "@/contexts/GlobalClockContext";
+import type { DeckVisualTheme } from "@/components/CommandGlobe";
 
 const SPEED_PRESETS = [1, 10, 60, 600] as const;
 
@@ -7,7 +8,13 @@ function formatUtc(d: Date): string {
   return d.toISOString().replace("T", " ").slice(0, 23) + " UTC";
 }
 
-export default function GlobalTimelineScrubber() {
+interface GlobalTimelineScrubberProps {
+  visualTheme?: DeckVisualTheme;
+}
+
+export default function GlobalTimelineScrubber({
+  visualTheme = "tactical",
+}: GlobalTimelineScrubberProps) {
   const {
     currentTime,
     mode,
@@ -19,6 +26,8 @@ export default function GlobalTimelineScrubber() {
     nudgeSeconds,
     getScrubBounds,
   } = useGlobalClock();
+
+  const a = visualTheme === "analytic";
 
   const [boundsTick, setBoundsTick] = useState(0);
   useEffect(() => {
@@ -48,12 +57,30 @@ export default function GlobalTimelineScrubber() {
   );
 
   return (
-    <div className="tactical-panel tactical-corners border-t border-[rgba(0,255,156,0.2)] px-4 py-3">
+    <div
+      className={
+        a
+          ? "border-t border-slate-200 bg-gradient-to-b from-white to-slate-50 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]"
+          : "tactical-panel tactical-corners border-t border-[rgba(0,255,156,0.2)] px-4 py-3"
+      }
+    >
       <div className="flex flex-wrap items-center gap-4">
-        <div className="font-mono text-[10px] uppercase tracking-widest text-[rgba(0,255,156,0.55)]">
+        <div
+          className={
+            a
+              ? "font-mono text-[10px] uppercase tracking-widest text-slate-500"
+              : "font-mono text-[10px] uppercase tracking-widest text-[rgba(0,255,156,0.55)]"
+          }
+        >
           Sim clock
         </div>
-        <div className="font-mono text-sm text-[#00FF9C] glow-phosphor min-w-[220px]">
+        <div
+          className={
+            a
+              ? "min-w-[220px] font-mono text-sm font-medium text-slate-900"
+              : "glow-phosphor min-w-[220px] font-mono text-sm text-[#00FF9C]"
+          }
+        >
           {formatUtc(currentTime)}
         </div>
 
@@ -65,8 +92,12 @@ export default function GlobalTimelineScrubber() {
               onClick={() => setMode(m)}
               className={`rounded px-2 py-1 font-mono text-[10px] uppercase tracking-wider transition-colors ${
                 mode === m
-                  ? "bg-[rgba(0,255,156,0.2)] text-[#00FF9C] ring-1 ring-[rgba(0,255,156,0.45)]"
-                  : "bg-[rgba(255,255,255,0.04)] text-[rgba(0,255,156,0.5)] hover:text-[#00FF9C]"
+                  ? a
+                    ? "bg-sky-100 text-slate-900 ring-1 ring-sky-400/60"
+                    : "bg-[rgba(0,255,156,0.2)] text-[#00FF9C] ring-1 ring-[rgba(0,255,156,0.45)]"
+                  : a
+                    ? "bg-slate-100/80 text-slate-600 hover:text-slate-900"
+                    : "bg-[rgba(255,255,255,0.04)] text-[rgba(0,255,156,0.5)] hover:text-[#00FF9C]"
               }`}
             >
               {m}
@@ -75,7 +106,15 @@ export default function GlobalTimelineScrubber() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <span className="font-mono text-[9px] uppercase text-[rgba(0,255,156,0.45)]">Replay ×</span>
+          <span
+            className={
+              a
+                ? "font-mono text-[9px] uppercase text-slate-500"
+                : "font-mono text-[9px] uppercase text-[rgba(0,255,156,0.45)]"
+            }
+          >
+            Replay ×
+          </span>
           {SPEED_PRESETS.map((s) => (
             <button
               key={s}
@@ -86,8 +125,12 @@ export default function GlobalTimelineScrubber() {
                 mode !== "REPLAY"
                   ? "cursor-not-allowed opacity-30"
                   : speedMultiplier === s
-                    ? "bg-[rgba(0,255,156,0.15)] text-[#00FF9C]"
-                    : "text-[rgba(0,255,156,0.55)] hover:text-[#00FF9C]"
+                    ? a
+                      ? "bg-sky-100 text-slate-900"
+                      : "bg-[rgba(0,255,156,0.15)] text-[#00FF9C]"
+                    : a
+                      ? "text-slate-600 hover:text-slate-900"
+                      : "text-[rgba(0,255,156,0.55)] hover:text-[#00FF9C]"
               }`}
             >
               {s}
@@ -95,8 +138,14 @@ export default function GlobalTimelineScrubber() {
           ))}
         </div>
 
-        <div className="flex flex-1 min-w-[200px] max-w-xl flex-col gap-1">
-          <div className="flex justify-between font-mono text-[9px] text-[rgba(0,255,156,0.4)]">
+        <div className="flex min-w-[200px] max-w-xl flex-1 flex-col gap-1">
+          <div
+            className={
+              a
+                ? "flex justify-between font-mono text-[9px] text-slate-500"
+                : "flex justify-between font-mono text-[9px] text-[rgba(0,255,156,0.4)]"
+            }
+          >
             <span>{start.toISOString().slice(11, 19)}</span>
             <span>{end.toISOString().slice(11, 19)}</span>
           </div>
@@ -108,19 +157,30 @@ export default function GlobalTimelineScrubber() {
             disabled={mode === "LIVE"}
             value={Math.round(sliderValue * 1000)}
             onChange={(e) => onSlider(Number(e.target.value) / 1000)}
-            className="h-1 w-full cursor-pointer accent-[#00FF9C] disabled:cursor-not-allowed disabled:opacity-40"
+            className={
+              a
+                ? "h-1 w-full cursor-pointer accent-sky-600 disabled:cursor-not-allowed disabled:opacity-40"
+                : "h-1 w-full cursor-pointer accent-[#00FF9C] disabled:cursor-not-allowed disabled:opacity-40"
+            }
             aria-label="Scrub simulated time within last 24 hours"
             aria-valuemin={0}
             aria-valuemax={1000}
             aria-valuenow={Math.round(sliderValue * 1000)}
           />
           {mode === "LIVE" ? (
-            <p className="font-mono text-[9px] leading-tight text-[rgba(255,184,0,0.65)]">
+            <p className="font-mono text-[9px] leading-tight text-[rgba(255,184,0,0.85)]">
               Switch to PAUSED or REPLAY to scrub the simulated clock. LIVE tracks wall time.
             </p>
           ) : (
-            <p className="font-mono text-[9px] leading-tight text-[rgba(0,255,156,0.35)]">
-              Scrub affects TLE satellite propagation. Live OpenSky/USGS payloads stay “now” until historical feeds exist.
+            <p
+              className={
+                a
+                  ? "font-mono text-[9px] leading-tight text-slate-500"
+                  : "font-mono text-[9px] leading-tight text-[rgba(0,255,156,0.35)]"
+              }
+            >
+              Scrub affects TLE satellite propagation. Live OpenSky/USGS payloads stay “now” until historical feeds
+              exist.
             </p>
           )}
         </div>
@@ -129,21 +189,33 @@ export default function GlobalTimelineScrubber() {
           <button
             type="button"
             onClick={() => nudgeSeconds(-3600)}
-            className="rounded border border-[rgba(0,255,156,0.2)] px-2 py-1 font-mono text-[10px] text-[rgba(0,255,156,0.7)] hover:border-[#00FF9C] hover:text-[#00FF9C]"
+            className={
+              a
+                ? "rounded border border-slate-300 px-2 py-1 font-mono text-[10px] text-slate-700 hover:border-sky-500 hover:text-slate-900"
+                : "rounded border border-[rgba(0,255,156,0.2)] px-2 py-1 font-mono text-[10px] text-[rgba(0,255,156,0.7)] hover:border-[#00FF9C] hover:text-[#00FF9C]"
+            }
           >
             −1h
           </button>
           <button
             type="button"
             onClick={() => nudgeSeconds(3600)}
-            className="rounded border border-[rgba(0,255,156,0.2)] px-2 py-1 font-mono text-[10px] text-[rgba(0,255,156,0.7)] hover:border-[#00FF9C] hover:text-[#00FF9C]"
+            className={
+              a
+                ? "rounded border border-slate-300 px-2 py-1 font-mono text-[10px] text-slate-700 hover:border-sky-500 hover:text-slate-900"
+                : "rounded border border-[rgba(0,255,156,0.2)] px-2 py-1 font-mono text-[10px] text-[rgba(0,255,156,0.7)] hover:border-[#00FF9C] hover:text-[#00FF9C]"
+            }
           >
             +1h
           </button>
           <button
             type="button"
             onClick={() => resetToLive()}
-            className="rounded bg-[rgba(0,255,156,0.12)] px-3 py-1 font-mono text-[10px] uppercase tracking-wider text-[#00FF9C] ring-1 ring-[rgba(0,255,156,0.35)] hover:bg-[rgba(0,255,156,0.2)]"
+            className={
+              a
+                ? "rounded bg-sky-100 px-3 py-1 font-mono text-[10px] uppercase tracking-wider text-slate-900 ring-1 ring-sky-400/50 hover:bg-sky-200/80"
+                : "rounded bg-[rgba(0,255,156,0.12)] px-3 py-1 font-mono text-[10px] uppercase tracking-wider text-[#00FF9C] ring-1 ring-[rgba(0,255,156,0.35)] hover:bg-[rgba(0,255,156,0.2)]"
+            }
           >
             Now
           </button>

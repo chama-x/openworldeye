@@ -364,3 +364,58 @@
     }
   }
 }
+
+/* Analytic (daylight) — html[data-theme="analytic"] set from CommandDeck */
+html[data-theme="analytic"] body {
+  background-color: #f8fafc;
+  background-image: none;
+  color: #0f172a;
+}
+
+html[data-theme="analytic"] #root {
+  background-color: #f8fafc;
+  color: #0f172a;
+}
+
+html[data-theme="analytic"] .scanlines::after {
+  display: none;
+}
+
+html[data-theme="analytic"] .owe-deck .tactical-panel-header {
+  background: linear-gradient(90deg, rgba(14, 165, 233, 0.1) 0%, transparent 100%);
+  border-bottom-color: rgba(15, 23, 42, 0.12);
+  color: #475569;
+}
+
+html[data-theme="analytic"] .owe-deck .data-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(14, 165, 233, 0.08) 0%,
+    rgba(14, 165, 233, 0.2) 50%,
+    rgba(14, 165, 233, 0.08) 100%
+  );
+  background-size: 200% 100%;
+}
+
+html[data-theme="analytic"] ::-webkit-scrollbar-track {
+  background: rgba(241, 245, 249, 0.9);
+}
+
+html[data-theme="analytic"] ::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.35);
+}
+
+html[data-theme="analytic"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(71, 85, 105, 0.5);
+}
+
+html[data-theme="analytic"] button:focus-visible,
+html[data-theme="analytic"] a:focus-visible,
+html[data-theme="analytic"] input:focus-visible,
+html[data-theme="analytic"] select:focus-visible,
+html[data-theme="analytic"] textarea:focus-visible,
+html[data-theme="analytic"] [role="button"]:focus-visible,
+html[data-theme="analytic"] [tabindex]:not([tabindex="-1"]):focus-visible {
+  outline: 2px solid rgba(14, 165, 233, 0.55);
+  outline-offset: 2px;
+}

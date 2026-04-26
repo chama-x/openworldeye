@@ -32,9 +32,18 @@ export interface MarkerLike {
   raw: unknown;
 }
 
+export type DeckVisualTheme = "tactical" | "analytic";
+
 export interface CommandGlobeProps {
   onSelectMarker?: (m: MarkerLike | null) => void;
+  /** Tactical = dark earth; analytic = daylight blue marble. */
+  visualTheme?: DeckVisualTheme;
 }
+
+const GLOBE_TEXTURES: Record<DeckVisualTheme, string> = {
+  tactical: "//unpkg.com/three-globe/example/img/earth-dark.jpg",
+  analytic: "//unpkg.com/three-globe/example/img/earth-blue-marble.jpg",
+};
 
 function readAutoRotatePreference(): boolean {
   try {
@@ -48,7 +57,10 @@ function readAutoRotatePreference(): boolean {
   return true;
 }
 
-export default function CommandGlobe({ onSelectMarker }: CommandGlobeProps) {
+export default function CommandGlobe({
+  onSelectMarker,
+  visualTheme = "tactical",
+}: CommandGlobeProps) {
   const globeRef = useRef<GlobeMethods | undefined>(undefined);
   const containerRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: 800, height: 600 });
@@ -100,6 +112,9 @@ export default function CommandGlobe({ onSelectMarker }: CommandGlobeProps) {
   }, []);
 
   const effectiveAutoRotate = autoRotate && !reduceMotion;
+
+  const globeImageUrl = GLOBE_TEXTURES[visualTheme];
+  const analyticGlobe = visualTheme === "analytic";
 
   useEffect(() => {
     if (!globeRef.current) return;
@@ -222,7 +237,11 @@ export default function CommandGlobe({ onSelectMarker }: CommandGlobeProps) {
                 : "Turn on globe auto-rotate"
           }
           onClick={() => setAutoRotate((v) => !v)}
-          className="pointer-events-auto rounded border border-[rgba(0,255,156,0.35)] bg-[rgba(10,14,20,0.92)] px-2 py-1 font-mono text-[9px] uppercase tracking-wider text-[#00FF9C] shadow-lg hover:bg-[rgba(0,255,156,0.08)] disabled:cursor-not-allowed disabled:opacity-40"
+          className={
+            analyticGlobe
+              ? "pointer-events-auto rounded border border-slate-300 bg-white/90 px-2 py-1 font-mono text-[9px] uppercase tracking-wider text-slate-800 shadow-lg hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
+              : "pointer-events-auto rounded border border-[rgba(0,255,156,0.35)] bg-[rgba(10,14,20,0.92)] px-2 py-1 font-mono text-[9px] uppercase tracking-wider text-[#00FF9C] shadow-lg hover:bg-[rgba(0,255,156,0.08)] disabled:cursor-not-allowed disabled:opacity-40"
+          }
         >
           Rotate {effectiveAutoRotate ? "on" : "off"}
         </button>
@@ -232,11 +251,11 @@ export default function CommandGlobe({ onSelectMarker }: CommandGlobeProps) {
         width={size.width}
         height={size.height}
         backgroundColor="rgba(0,0,0,0)"
-        globeImageUrl="https://unpkg.com/three-globe/example/img/earth-night.jpg"
+        globeImageUrl={globeImageUrl}
         bumpImageUrl="https://unpkg.com/three-globe/example/img/earth-topology.png"
         showAtmosphere={true}
-        atmosphereColor="#00FF9C"
-        atmosphereAltitude={0.18}
+        atmosphereColor={analyticGlobe ? "#7dd3fc" : "#00FF9C"}
+        atmosphereAltitude={analyticGlobe ? 0.12 : 0.18}
         pointsData={allPoints}
         pointLat={(d: object) => (d as MarkerLike).lat}
         pointLng={(d: object) => (d as MarkerLike).lng}

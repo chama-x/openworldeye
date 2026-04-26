@@ -2,16 +2,21 @@ import { useCallback, useMemo, useState } from "react";
 import { useGlobalClock } from "@/contexts/GlobalClockContext";
 import { useDataLayers } from "@/contexts/DataLayersContext";
 import { useOsintSnapshot } from "@/contexts/OsintDataContext";
-import type { MarkerLike } from "@/components/CommandGlobe";
+import type { DeckVisualTheme, MarkerLike } from "@/components/CommandGlobe";
 import { MAX_AIRCRAFT_GLOBE_POINTS } from "@/lib/constants";
 import { feedStripPart } from "@/lib/feedMeta";
 
 interface IntelligenceBriefProps {
+  visualTheme?: DeckVisualTheme;
   selected: MarkerLike | null;
   onClearSelection: () => void;
 }
 
-export default function IntelligenceBrief({ selected, onClearSelection }: IntelligenceBriefProps) {
+export default function IntelligenceBrief({
+  visualTheme = "tactical",
+  selected,
+  onClearSelection,
+}: IntelligenceBriefProps) {
   const { currentTime, mode } = useGlobalClock();
   const { layers } = useDataLayers();
   const osint = useOsintSnapshot();
@@ -102,39 +107,81 @@ export default function IntelligenceBrief({ selected, onClearSelection }: Intell
     }
   }, [heuristicBrief]);
 
+  const a = visualTheme === "analytic";
+
   return (
-    <div className="tactical-panel flex h-full min-h-0 flex-col">
+    <div
+      className={
+        a
+          ? "flex h-full min-h-0 flex-col rounded-none border border-slate-200/90 bg-white/95 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.6)]"
+          : "tactical-panel flex h-full min-h-0 flex-col"
+      }
+    >
       <div className="tactical-panel-header">
         <span>Intelligence</span>
         <span className="flex items-center gap-2">
-          <span className="text-[rgba(0,255,156,0.45)]">BRIEF</span>
+          <span className={a ? "text-slate-500" : "text-[rgba(0,255,156,0.45)]"}>BRIEF</span>
           {selected ? (
             <button
               type="button"
               onClick={onClearSelection}
-              className="rounded border border-[rgba(0,255,156,0.35)] px-2 py-0.5 font-mono text-[9px] uppercase text-[#00FF9C] hover:bg-[rgba(0,255,156,0.1)]"
+              className={
+                a
+                  ? "rounded border border-slate-300 px-2 py-0.5 font-mono text-[9px] uppercase text-slate-800 hover:bg-slate-100"
+                  : "rounded border border-[rgba(0,255,156,0.35)] px-2 py-0.5 font-mono text-[9px] uppercase text-[#00FF9C] hover:bg-[rgba(0,255,156,0.1)]"
+              }
             >
               Clear
             </button>
           ) : null}
         </span>
       </div>
-      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-3 font-sans text-xs text-[rgba(230,238,248,0.88)]">
+      <div
+        className={
+          a
+            ? "flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-3 font-sans text-xs text-slate-800"
+            : "flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-3 font-sans text-xs text-[rgba(230,238,248,0.88)]"
+        }
+      >
         <section>
-          <h3 className="mb-1 font-mono text-[10px] uppercase tracking-widest text-[rgba(0,255,156,0.5)]">
+          <h3
+            className={
+              a
+                ? "mb-1 font-mono text-[10px] uppercase tracking-widest text-slate-500"
+                : "mb-1 font-mono text-[10px] uppercase tracking-widest text-[rgba(0,255,156,0.5)]"
+            }
+          >
             Field summary
           </h3>
-          <pre className="whitespace-pre-wrap rounded border border-[rgba(0,255,156,0.12)] bg-[rgba(0,0,0,0.35)] p-2 font-mono text-[10px] leading-relaxed text-[rgba(0,255,156,0.85)]">
+          <pre
+            className={
+              a
+                ? "whitespace-pre-wrap rounded border border-slate-200 bg-slate-50 p-2 font-mono text-[10px] leading-relaxed text-slate-800"
+                : "whitespace-pre-wrap rounded border border-[rgba(0,255,156,0.12)] bg-[rgba(0,0,0,0.35)] p-2 font-mono text-[10px] leading-relaxed text-[rgba(0,255,156,0.85)]"
+            }
+          >
             {heuristicBrief}
           </pre>
         </section>
 
         <section>
-          <h3 className="mb-1 font-mono text-[10px] uppercase tracking-widest text-[rgba(0,255,156,0.5)]">
+          <h3
+            className={
+              a
+                ? "mb-1 font-mono text-[10px] uppercase tracking-widest text-slate-500"
+                : "mb-1 font-mono text-[10px] uppercase tracking-widest text-[rgba(0,255,156,0.5)]"
+            }
+          >
             Selected marker
           </h3>
           {selected ? (
-            <pre className="max-h-40 overflow-auto rounded border border-[rgba(0,255,156,0.12)] bg-[rgba(0,0,0,0.35)] p-2 font-mono text-[10px] text-[rgba(0,255,156,0.85)]">
+            <pre
+              className={
+                a
+                  ? "max-h-40 overflow-auto rounded border border-slate-200 bg-slate-50 p-2 font-mono text-[10px] text-slate-800"
+                  : "max-h-40 overflow-auto rounded border border-[rgba(0,255,156,0.12)] bg-[rgba(0,0,0,0.35)] p-2 font-mono text-[10px] text-[rgba(0,255,156,0.85)]"
+              }
+            >
               {JSON.stringify(
                 {
                   category: selected.category,
@@ -148,22 +195,34 @@ export default function IntelligenceBrief({ selected, onClearSelection }: Intell
               )}
             </pre>
           ) : (
-            <p className="font-mono text-[10px] text-[rgba(0,255,156,0.35)]">
+            <p className={a ? "font-mono text-[10px] text-slate-500" : "font-mono text-[10px] text-[rgba(0,255,156,0.35)]"}>
               Click a globe point… (Escape clears)
             </p>
           )}
         </section>
 
-        <section className="mt-auto border-t border-[rgba(0,255,156,0.1)] pt-2">
+        <section
+          className={a ? "mt-auto border-t border-slate-200 pt-2" : "mt-auto border-t border-[rgba(0,255,156,0.1)] pt-2"}
+        >
           <div className="mb-2 flex items-center justify-between gap-2">
-            <h3 className="font-mono text-[10px] uppercase tracking-widest text-[rgba(0,255,156,0.5)]">
+            <h3
+              className={
+                a
+                  ? "font-mono text-[10px] uppercase tracking-widest text-slate-500"
+                  : "font-mono text-[10px] uppercase tracking-widest text-[rgba(0,255,156,0.5)]"
+              }
+            >
               LLM synthesis (optional)
             </h3>
             <button
               type="button"
               disabled={llmBusy}
               onClick={() => void runGroq()}
-              className="rounded bg-[rgba(0,255,156,0.1)] px-2 py-1 font-mono text-[9px] uppercase text-[#00FF9C] ring-1 ring-[rgba(0,255,156,0.25)] hover:bg-[rgba(0,255,156,0.18)] disabled:opacity-40"
+              className={
+                a
+                  ? "rounded bg-sky-100 px-2 py-1 font-mono text-[9px] uppercase text-slate-900 ring-1 ring-sky-300/60 hover:bg-sky-200/80 disabled:opacity-40"
+                  : "rounded bg-[rgba(0,255,156,0.1)] px-2 py-1 font-mono text-[9px] uppercase text-[#00FF9C] ring-1 ring-[rgba(0,255,156,0.25)] hover:bg-[rgba(0,255,156,0.18)] disabled:opacity-40"
+              }
             >
               {llmBusy ? "…" : "Synthesize"}
             </button>
@@ -172,7 +231,13 @@ export default function IntelligenceBrief({ selected, onClearSelection }: Intell
             <p className="font-mono text-[10px] text-[#FF3333]">{llmErr}</p>
           ) : null}
           {llmOut ? (
-            <p className="rounded border border-[rgba(0,255,156,0.12)] bg-[rgba(0,0,0,0.25)] p-2 font-mono text-[10px] leading-relaxed text-[rgba(230,238,248,0.9)]">
+            <p
+              className={
+                a
+                  ? "rounded border border-slate-200 bg-slate-50 p-2 font-mono text-[10px] leading-relaxed text-slate-800"
+                  : "rounded border border-[rgba(0,255,156,0.12)] bg-[rgba(0,0,0,0.25)] p-2 font-mono text-[10px] leading-relaxed text-[rgba(230,238,248,0.9)]"
+              }
+            >
               {llmOut}
             </p>
           ) : null}
