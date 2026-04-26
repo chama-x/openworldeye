@@ -1,0 +1,45 @@
+{
+  "name": "openworldeye",
+  "private": true,
+  "version": "0.1.0",
+  "description": "OpenWorldEye — tactical OSINT globe (OpenSky, CelesTrak TLEs, USGS, sample events) on react-globe.gl",
+  "type": "module",
+  "keywords": [
+    "osint",
+    "geospatial",
+    "globe",
+    "react",
+    "vite",
+    "threejs",
+    "opensky",
+    "celestrak",
+    "usgs"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/YOUR_GITHUB_USERNAME/openworldeye.git"
+  },
+  "license": "MIT",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-globe.gl": "^2.31.3",
+    "satellite.js": "^5.0.0",
+    "three": "^0.170.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.0.14",
+    "@types/react": "^19.0.8",
+    "@types/react-dom": "^19.0.3",
+    "@vitejs/plugin-react": "^4.3.4",
+    "tailwindcss": "^4.0.14",
+    "tw-animate-css": "^1.2.5",
+    "typescript": "~5.7.3",
+    "vite": "^6.1.0"
+  }
+}

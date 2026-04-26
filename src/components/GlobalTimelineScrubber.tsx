@@ -1,0 +1,145 @@
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useGlobalClock, type ClockMode, SCRUB_WINDOW_MS } from "@/contexts/GlobalClockContext";
+
+const SPEED_PRESETS = [1, 10, 60, 600] as const;
+
+function formatUtc(d: Date): string {
+  return d.toISOString().replace("T", " ").slice(0, 23) + " UTC";
+}
+
+export default function GlobalTimelineScrubber() {
+  const {
+    currentTime,
+    mode,
+    speedMultiplier,
+    setMode,
+    setSpeedMultiplier,
+    scrubTo,
+    resetToLive,
+    nudgeSeconds,
+    getScrubBounds,
+  } = useGlobalClock();
+
+  const [boundsTick, setBoundsTick] = useState(0);
+  useEffect(() => {
+    if (mode !== "LIVE") return;
+    const id = window.setInterval(() => setBoundsTick((n) => n + 1), 5000);
+    return () => clearInterval(id);
+  }, [mode]);
+
+  const { start, end } = useMemo(() => {
+    void boundsTick;
+    return getScrubBounds();
+  }, [getScrubBounds, boundsTick]);
+
+  const span = end.getTime() - start.getTime() || SCRUB_WINDOW_MS;
+  const sliderValue = useMemo(() => {
+    const t = currentTime.getTime();
+    const r = (t - start.getTime()) / span;
+    return Math.min(1, Math.max(0, r));
+  }, [currentTime, start, span]);
+
+  const onSlider = useCallback(
+    (ratio: number) => {
+      const ms = start.getTime() + ratio * span;
+      scrubTo(new Date(ms));
+    },
+    [scrubTo, start, span],
+  );
+
+  return (
+    <div className="tactical-panel tactical-corners border-t border-[rgba(0,255,156,0.2)] px-4 py-3">
+      <div className="flex flex-wrap items-center gap-4">
+        <div className="font-mono text-[10px] uppercase tracking-widest text-[rgba(0,255,156,0.55)]">
+          Sim clock
+        </div>
+        <div className="font-mono text-sm text-[#00FF9C] glow-phosphor min-w-[220px]">
+          {formatUtc(currentTime)}
+        </div>
+
+        <div className="flex gap-1">
+          {(["LIVE", "PAUSED", "REPLAY"] as ClockMode[]).map((m) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => setMode(m)}
+              className={`rounded px-2 py-1 font-mono text-[10px] uppercase tracking-wider transition-colors ${
+                mode === m
+                  ? "bg-[rgba(0,255,156,0.2)] text-[#00FF9C] ring-1 ring-[rgba(0,255,156,0.45)]"
+                  : "bg-[rgba(255,255,255,0.04)] text-[rgba(0,255,156,0.5)] hover:text-[#00FF9C]"
+              }`}
+            >
+              {m}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="font-mono text-[9px] uppercase text-[rgba(0,255,156,0.45)]">Replay ×</span>
+          {SPEED_PRESETS.map((s) => (
+            <button
+              key={s}
+              type="button"
+              disabled={mode !== "REPLAY"}
+              onClick={() => setSpeedMultiplier(s)}
+              className={`rounded px-2 py-0.5 font-mono text-[10px] ${
+                mode !== "REPLAY"
+                  ? "cursor-not-allowed opacity-30"
+                  : speedMultiplier === s
+                    ? "bg-[rgba(0,255,156,0.15)] text-[#00FF9C]"
+                    : "text-[rgba(0,255,156,0.55)] hover:text-[#00FF9C]"
+              }`}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex flex-1 min-w-[200px] max-w-xl flex-col gap-1">
+          <div className="flex justify-between font-mono text-[9px] text-[rgba(0,255,156,0.4)]">
+            <span>{start.toISOString().slice(11, 19)}</span>
+            <span>{end.toISOString().slice(11, 19)}</span>
+          </div>
+          <input
+            type="range"
+            min={0}
+            max={1000}
+            step={1}
+            disabled={mode === "LIVE"}
+            value={Math.round(sliderValue * 1000)}
+            onChange={(e) => onSlider(Number(e.target.value) / 1000)}
+            className="h-1 w-full cursor-pointer accent-[#00FF9C] disabled:cursor-not-allowed disabled:opacity-40"
+            aria-label="Scrub simulated time within last 24 hours"
+          />
+          <p className="font-mono text-[9px] leading-tight text-[rgba(0,255,156,0.35)]">
+            Scrub affects TLE satellite propagation. Live OpenSky/USGS payloads stay “now” until historical feeds exist.
+          </p>
+        </div>
+
+        <div className="flex gap-1">
+          <button
+            type="button"
+            onClick={() => nudgeSeconds(-3600)}
+            className="rounded border border-[rgba(0,255,156,0.2)] px-2 py-1 font-mono text-[10px] text-[rgba(0,255,156,0.7)] hover:border-[#00FF9C] hover:text-[#00FF9C]"
+          >
+            −1h
+          </button>
+          <button
+            type="button"
+            onClick={() => nudgeSeconds(3600)}
+            className="rounded border border-[rgba(0,255,156,0.2)] px-2 py-1 font-mono text-[10px] text-[rgba(0,255,156,0.7)] hover:border-[#00FF9C] hover:text-[#00FF9C]"
+          >
+            +1h
+          </button>
+          <button
+            type="button"
+            onClick={() => resetToLive()}
+            className="rounded bg-[rgba(0,255,156,0.12)] px-3 py-1 font-mono text-[10px] uppercase tracking-wider text-[#00FF9C] ring-1 ring-[rgba(0,255,156,0.35)] hover:bg-[rgba(0,255,156,0.2)]"
+          >
+            Now
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

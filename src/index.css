@@ -1,0 +1,337 @@
+/**
+ * OpenWorldEye — design system (OSINT globe)
+ * Style: Tactical Command Bunker
+ * Inspired by: NORAD command rooms, Palantir Gotham, DEFCON dashboards
+ *
+ * Color Tokens:
+ * - Background: Deep obsidian black (#0A0E14)
+ * - Primary: Phosphor green (#00FF9C) - active/friendly data
+ * - Warning: Tactical amber (#FFB800) - caution states
+ * - Critical: Blood red (#FF3333) - hostile/alert states
+ *
+ * Typography:
+ * - JetBrains Mono - data, coordinates, technical readouts
+ * - Space Grotesk - headers, display titles
+ * - Geist - body text, paragraphs
+ */
+
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Tactical color tokens */
+  --color-phosphor: var(--phosphor);
+  --color-amber: var(--amber);
+  --color-critical: var(--critical);
+  --color-cyan: var(--cyan);
+
+  /* Custom fonts */
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --font-display: "Space Grotesk", sans-serif;
+  --font-sans: "Geist", system-ui, sans-serif;
+}
+
+:root {
+  /* Tactical Command Bunker - Dark by default */
+  --radius: 0.25rem;
+  --background: oklch(0.13 0.015 240);
+  --foreground: oklch(0.92 0.02 150);
+  --card: oklch(0.16 0.018 240);
+  --card-foreground: oklch(0.92 0.02 150);
+  --popover: oklch(0.14 0.018 240);
+  --popover-foreground: oklch(0.92 0.02 150);
+  --primary: oklch(0.85 0.22 152);
+  --primary-foreground: oklch(0.10 0.015 240);
+  --secondary: oklch(0.20 0.020 240);
+  --secondary-foreground: oklch(0.85 0.02 150);
+  --muted: oklch(0.18 0.015 240);
+  --muted-foreground: oklch(0.55 0.020 200);
+  --accent: oklch(0.22 0.025 240);
+  --accent-foreground: oklch(0.85 0.22 152);
+  --destructive: oklch(0.62 0.25 25);
+  --destructive-foreground: oklch(0.98 0 0);
+  --border: oklch(0.25 0.020 200 / 50%);
+  --input: oklch(0.20 0.020 240);
+  --ring: oklch(0.85 0.22 152 / 50%);
+
+  /* Tactical accents */
+  --phosphor: oklch(0.88 0.22 152);
+  --amber: oklch(0.82 0.18 75);
+  --critical: oklch(0.65 0.27 25);
+  --cyan: oklch(0.78 0.15 200);
+
+  --chart-1: oklch(0.85 0.22 152);
+  --chart-2: oklch(0.82 0.18 75);
+  --chart-3: oklch(0.65 0.27 25);
+  --chart-4: oklch(0.78 0.15 200);
+  --chart-5: oklch(0.70 0.18 280);
+
+  --sidebar: oklch(0.10 0.015 240);
+  --sidebar-foreground: oklch(0.85 0.02 150);
+  --sidebar-primary: oklch(0.85 0.22 152);
+  --sidebar-primary-foreground: oklch(0.10 0.015 240);
+  --sidebar-accent: oklch(0.18 0.020 240);
+  --sidebar-accent-foreground: oklch(0.85 0.22 152);
+  --sidebar-border: oklch(0.25 0.020 200 / 50%);
+  --sidebar-ring: oklch(0.85 0.22 152 / 50%);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html, body, #root {
+    @apply bg-background text-foreground;
+    height: 100%;
+    overflow: hidden;
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    background-color: #0A0E14;
+    background-image:
+      radial-gradient(circle at 20% 30%, rgba(0, 255, 156, 0.025) 0%, transparent 40%),
+      radial-gradient(circle at 80% 70%, rgba(255, 184, 0, 0.015) 0%, transparent 40%);
+  }
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [type="button"]:not(:disabled),
+  [type="submit"]:not(:disabled),
+  [type="reset"]:not(:disabled),
+  a[href],
+  select:not(:disabled),
+  input[type="checkbox"]:not(:disabled),
+  input[type="radio"]:not(:disabled) {
+    @apply cursor-pointer;
+  }
+
+  /* Scrollbar styling for tactical aesthetic */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: rgba(10, 14, 20, 0.5);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(0, 255, 156, 0.2);
+    border-radius: 0;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 255, 156, 0.4);
+  }
+}
+
+@layer components {
+  .container {
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .flex {
+    min-height: 0;
+    min-width: 0;
+  }
+
+  /* Tactical UI primitives */
+  .font-mono { font-family: var(--font-mono); }
+  .font-display { font-family: var(--font-display); }
+
+  /* OpenWorldEye — brand (see BRANDING.md) */
+  .brand-wordmark-compact {
+    font-family: var(--font-display);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+  .brand-wordmark-spaced {
+    font-family: var(--font-display);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.22em;
+  }
+
+  /* CRT scanline overlay */
+  .scanlines {
+    position: relative;
+  }
+  .scanlines::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: repeating-linear-gradient(
+      0deg,
+      rgba(0, 255, 156, 0.015) 0px,
+      rgba(0, 255, 156, 0.015) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+    z-index: 50;
+  }
+
+  /* Tactical panel base */
+  .tactical-panel {
+    background: linear-gradient(180deg, rgba(16, 22, 32, 0.95) 0%, rgba(10, 14, 20, 0.95) 100%);
+    border: 1px solid rgba(0, 255, 156, 0.15);
+    backdrop-filter: blur(8px);
+    box-shadow:
+      0 0 0 1px rgba(0, 0, 0, 0.5) inset,
+      0 8px 32px rgba(0, 0, 0, 0.6);
+  }
+
+  .tactical-panel-header {
+    background: linear-gradient(90deg, rgba(0, 255, 156, 0.08) 0%, transparent 100%);
+    border-bottom: 1px solid rgba(0, 255, 156, 0.2);
+    padding: 0.5rem 0.75rem;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: rgba(0, 255, 156, 0.85);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  /* Glowing text effect */
+  .glow-phosphor {
+    color: #00FF9C;
+    text-shadow: 0 0 8px rgba(0, 255, 156, 0.6), 0 0 16px rgba(0, 255, 156, 0.3);
+  }
+  .glow-amber {
+    color: #FFB800;
+    text-shadow: 0 0 8px rgba(255, 184, 0, 0.6), 0 0 16px rgba(255, 184, 0, 0.3);
+  }
+  .glow-critical {
+    color: #FF3333;
+    text-shadow: 0 0 8px rgba(255, 51, 51, 0.6), 0 0 16px rgba(255, 51, 51, 0.3);
+  }
+
+  /* Pulse animation for live indicators */
+  @keyframes tactical-pulse {
+    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 currentColor; }
+    50% { opacity: 0.7; box-shadow: 0 0 0 4px transparent; }
+  }
+  .pulse-live {
+    animation: tactical-pulse 1.6s ease-in-out infinite;
+  }
+
+  /* Radar sweep rotation */
+  @keyframes radar-sweep {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  .radar-rotate {
+    animation: radar-sweep 4s linear infinite;
+  }
+
+  /* Marker glow */
+  @keyframes marker-pulse {
+    0%, 100% { transform: scale(1); opacity: 0.8; }
+    50% { transform: scale(1.4); opacity: 0.3; }
+  }
+  .marker-pulse {
+    animation: marker-pulse 2s ease-in-out infinite;
+  }
+
+  /* Data shimmer for loading states */
+  @keyframes data-shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+  .data-shimmer {
+    background: linear-gradient(
+      90deg,
+      rgba(0, 255, 156, 0.05) 0%,
+      rgba(0, 255, 156, 0.2) 50%,
+      rgba(0, 255, 156, 0.05) 100%
+    );
+    background-size: 200% 100%;
+    animation: data-shimmer 1.5s ease-in-out infinite;
+  }
+
+  /* Corner brackets for tactical elements */
+  .tactical-corners {
+    position: relative;
+  }
+  .tactical-corners::before,
+  .tactical-corners::after {
+    content: "";
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    border-color: rgba(0, 255, 156, 0.6);
+    border-style: solid;
+  }
+  .tactical-corners::before {
+    top: -1px;
+    left: -1px;
+    border-width: 1px 0 0 1px;
+  }
+  .tactical-corners::after {
+    bottom: -1px;
+    right: -1px;
+    border-width: 0 1px 1px 0;
+  }
+
+  /* Status indicator dot */
+  .status-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    box-shadow: 0 0 8px currentColor;
+  }
+
+  /* Coordinate readout style */
+  .coord-readout {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.05em;
+    color: rgba(0, 255, 156, 0.7);
+  }
+}
