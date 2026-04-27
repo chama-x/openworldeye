@@ -18,6 +18,9 @@ import Globe, { type GlobeMethods } from "react-globe.gl";
 import { useOsintSnapshot } from "@/contexts/OsintDataContext";
 import { useDataLayers } from "@/contexts/DataLayersContext";
 import { MAX_AIRCRAFT_GLOBE_POINTS } from "@/lib/constants";
+import GlobeR3FOverlay from "@/components/GlobeR3FOverlay";
+import AircraftGlobeLayer from "@/components/globe-layers/AircraftGlobeLayer";
+import SatelliteGlobeLayer from "@/components/globe-layers/SatelliteGlobeLayer";
 
 const AUTO_ROTATE_STORAGE_KEY = "owe.globe.autorotate";
 
@@ -296,6 +299,16 @@ export default function CommandGlobe({
         }}
         ringAltitude={0.005}
       />
+
+      <GlobeR3FOverlay globeRef={globeRef} width={size.width} height={size.height}>
+        <ambientLight intensity={0.4} />
+        <directionalLight position={[120, 60, 80]} intensity={1.8} castShadow={false} />
+        <directionalLight position={[-100, -50, -100]} intensity={0.25} color="#3355aa" />
+
+        <AircraftGlobeLayer data={aircraftForGlobe} visible={layer("aircraft").active} />
+
+        <SatelliteGlobeLayer data={satellites.data} visible={layer("satellites").active} />
+      </GlobeR3FOverlay>
     </div>
   );
 }
