@@ -20,7 +20,7 @@ import type { Aircraft } from "@/lib/osint-services";
 const PROXY_RADIUS = 0.4; // Globe units — ~25km sphere, easily clickable
 
 const invisibleMat = new THREE.MeshBasicMaterial({
-  visible: false,
+  colorWrite: false, // Invisible but still participates in raycasting
   depthWrite: false,
   side: THREE.DoubleSide,
 });

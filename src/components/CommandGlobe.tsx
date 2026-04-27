@@ -23,9 +23,6 @@ import { MAX_AIRCRAFT_GLOBE_POINTS } from "@/lib/constants";
 import { aircraftColor, seismicColor } from "@/lib/threat-colors";
 import {
   GlobeCameraProvider,
-  useGlobeCameraDistance,
-  AIRCRAFT_MODEL_OVERLAY_FADE_DIST,
-  SATELLITE_MODEL_OVERLAY_FADE_DIST,
 } from "@/contexts/GlobeCameraContext";
 import GlobeR3FOverlay from "@/components/GlobeR3FOverlay";
 import AircraftGlobeLayer from "@/components/globe-layers/AircraftGlobeLayer";
@@ -77,7 +74,6 @@ function readAutoRotatePreference(): boolean {
 function CommandGlobeContent({
   visualTheme = "tactical",
 }: CommandGlobeProps) {
-  const { cameraDistance } = useGlobeCameraDistance();
   const { selectedEntity, setSelectedEntity, clearSelection } = useSelection();
   const globeRef = useRef<GlobeMethods | undefined>(undefined);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -292,10 +288,8 @@ function CommandGlobeContent({
     [aircraftPoints, satellitePoints, earthquakePoints, conflictPoints, maritimePoints, gpsJamPoints],
   );
 
-  const hideAircraftGlobePoints =
-    layer("aircraft").active && cameraDistance < AIRCRAFT_MODEL_OVERLAY_FADE_DIST;
-  const hideSatelliteGlobePoints =
-    layer("satellites").active && cameraDistance < SATELLITE_MODEL_OVERLAY_FADE_DIST;
+  // We no longer hide 3D models based on distance, so the green fallback lines
+  // are never needed visually. We keep them in the array for hover tooltips.
 
   const ringsData = useMemo(
     () => (layer("conflicts").active ? conflictRingsFromEvents : []),
@@ -344,8 +338,8 @@ function CommandGlobeContent({
         pointRadius={(d: object) => (d as MarkerLike).size}
         pointColor={(d: object) => {
           const m = d as MarkerLike;
-          if (m.category === "AIRCRAFT" && hideAircraftGlobePoints) return "rgba(0,0,0,0)";
-          if (m.category === "SATELLITE" && hideSatelliteGlobePoints) return "rgba(0,0,0,0)";
+          // Render as transparent to hide the 2D bar while keeping the HTML hover tooltip active
+          if (m.category === "AIRCRAFT" || m.category === "SATELLITE") return "rgba(0,0,0,0)";
           return m.color;
         }}
         pointResolution={6}
@@ -426,7 +420,7 @@ function CommandGlobeContent({
         />
         <AircraftClickProxy
           data={aircraftForGlobe}
-          visible={layer("aircraft").active && cameraDistance < AIRCRAFT_MODEL_OVERLAY_FADE_DIST}
+          visible={layer("aircraft").active}
         />
 
         <SatelliteGlobeLayer data={satellites.data} visible={layer("satellites").active} />

@@ -6,8 +6,8 @@
  * Per-aircraft scale from classify(type) × METERS_TO_GLOBE; generic fleet uses instance colors (military red).
  */
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useFrame, useThree } from "@react-three/fiber";
+import { useEffect, useMemo, useRef } from "react";
+import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { aircraftBasisQuaternion, latLngAltToXYZ } from "@/lib/globe-coords";
 import { METERS_TO_GLOBE } from "@/lib/model-geometry-constants";
@@ -18,7 +18,7 @@ import {
 import type { Aircraft } from "@/lib/osint-services";
 import { resolveAircraftVisual } from "@/lib/aircraft-classifier";
 
-type AircraftLod = "hidden" | "silhouette" | "detail";
+// AircraftLod type removed as models are now consistently rendered at any distance.
 
 const FLEET_SURFACE: Record<GlobeFleetGeometryKey, { main: string; emissive: number }> = {
   b777: { main: "#e8f4ff", emissive: 0.2 },
@@ -38,16 +38,7 @@ interface AircraftGlobeLayerProps {
 }
 
 export default function AircraftGlobeLayer({ data, visible, selectedIcao }: AircraftGlobeLayerProps) {
-  const { camera } = useThree();
-  const [lod, setLod] = useState<AircraftLod>("silhouette");
-
-  useFrame(() => {
-    const dist = camera.position.length();
-    setLod((prev) => {
-      const next: AircraftLod = dist > 350 ? "hidden" : dist > 200 ? "silhouette" : "detail";
-      return next !== prev ? next : prev;
-    });
-  });
+  // Models are consistently rendered across all distances to provide visual continuity.
 
   const buckets = useMemo(() => {
     const out: Record<GlobeFleetGeometryKey, Aircraft[]> = {
@@ -66,7 +57,7 @@ export default function AircraftGlobeLayer({ data, visible, selectedIcao }: Airc
     return out;
   }, [data]);
 
-  if (!visible || data.length === 0 || lod === "hidden") return null;
+  if (!visible || data.length === 0) return null;
 
   return (
     <>
