@@ -57,6 +57,7 @@ interface GlobeR3FOverlayProps {
   globeRef: RefObject<GlobeMethods | undefined>;
   width: number;
   height: number;
+  eventSource?: any; // any bypasses R3F strict null checks for RefObject
   children: ReactNode;
 }
 
@@ -64,6 +65,7 @@ export default function GlobeR3FOverlay({
   globeRef,
   width,
   height,
+  eventSource,
   children,
 }: GlobeR3FOverlayProps) {
   return (
@@ -76,14 +78,8 @@ export default function GlobeR3FOverlay({
       }}
     >
       <Canvas
-        onCreated={({ gl }) => {
-          // Allow pointer events on the canvas so R3F raycaster works.
-          // Clicks that don't hit an R3F object fall through to globe.gl
-          // because the parent div has pointer-events: none — the canvas
-          // itself is the only element capturing events, and only R3F
-          // meshes with onClick will consume them.
-          gl.domElement.style.pointerEvents = "auto";
-        }}
+        eventSource={eventSource}
+        eventPrefix="client"
         style={{
           background: "transparent",
           width: `${width}px`,

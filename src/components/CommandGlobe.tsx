@@ -414,7 +414,7 @@ function CommandGlobeContent({
         ringAltitude={0.005}
       />
 
-      <GlobeR3FOverlay globeRef={globeRef} width={size.width} height={size.height}>
+      <GlobeR3FOverlay globeRef={globeRef} width={size.width} height={size.height} eventSource={containerRef}>
         <ambientLight intensity={0.4} />
         <directionalLight position={[120, 60, 80]} intensity={1.8} castShadow={false} />
         <directionalLight position={[-100, -50, -100]} intensity={0.25} color="#3355aa" />

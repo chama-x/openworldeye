@@ -666,11 +666,6 @@ export async function fetchConflictEvents(): Promise<DataFeedResult<ConflictEven
 const GPSJAM_CACHE_MS = 3600 * 1000;
 let gpsJamCache: { records: GpsJamPoint[]; at: number } | null = null;
 
-interface GpsJamFeature {
-  geometry?: { type?: string; coordinates?: number[] };
-  properties?: { level?: number };
-}
-
 export async function fetchGpsJamData(): Promise<DataFeedResult<GpsJamPoint>> {
   // GPSJam.org does not provide a public API and actively discourages scraping.
   // To keep the visual layer active without violating TOS or hitting 404s,
