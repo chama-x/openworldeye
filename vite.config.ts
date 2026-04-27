@@ -34,9 +34,9 @@ export default defineConfig({
         rewrite: () => "/oauth/token",
       },
       "/api/acled/read": {
-        target: "https://api.acleddata.com",
+        target: "https://acleddata.com",
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/acled\/read/, "/acled/read"),
+        rewrite: (path) => path.replace(/^\/api\/acled\/read/, "/api/acled/read"),
       },
     },
   },

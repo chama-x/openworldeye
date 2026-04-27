@@ -10,6 +10,15 @@ import type { Aircraft, MaritimeData, ConflictEvent, Earthquake, GpsJamPoint } f
 
 const UP = new THREE.Vector3(0, 1, 0);
 
+const getAltColor = (altFt: number): THREE.Color => {
+  const col = new THREE.Color();
+  if (altFt > 30000) col.setHSL(0.6, 0.9, 0.5);       // cruise — blue
+  else if (altFt > 10000) col.setHSL(0.5, 0.85, 0.45); // climb — cyan
+  else if (altFt > 3000) col.setHSL(0.12, 0.9, 0.5);   // approach — amber
+  else col.setHSL(0.05, 1.0, 0.5);                      // low — orange-red
+  return col;
+};
+
 export default function SelectionVisualLayer() {
   const { selectedEntity } = useSelection();
   const osint = useOsintSnapshot();
@@ -50,11 +59,32 @@ function AircraftSelection({ ac }: { ac: Aircraft }) {
   const up = surfPos.clone().normalize();
   const quat = new THREE.Quaternion().setFromUnitVectors(UP, up);
 
-  // Trail from positionHistory (populated by stable-identity merge in useOsintData)
-  const trailPoints = useMemo(() => {
+  // Trail from positionHistory with altitude-based vertex colors and fade
+  const trailGeo = useMemo(() => {
     const history = ac.positionHistory;
     if (!history || history.length < 2) return null;
-    return history.map(p => latLngAltToXYZ(p.lat, p.lon, p.alt / 1000));
+    
+    const positions: number[] = [];
+    const colors: number[] = [];
+    const col = new THREE.Color();
+
+    history.forEach((p, i) => {
+      const pos = latLngAltToXYZ(p.lat, p.lon, p.alt / 1000);
+      positions.push(pos.x, pos.y, pos.z);
+      
+      const t = i / (history.length - 1); // 0=oldest → 1=newest
+      const altColor = getAltColor(p.alt * 3.28084); // meters to feet
+      
+      // LineBasicMaterial does not support per-vertex alpha, so we simulate a fade
+      // by lerping the vertex color toward black (which blends well on a dark globe)
+      col.copy(altColor).lerp(new THREE.Color(0,0,0), 1 - Math.pow(t, 0.5));
+      colors.push(col.r, col.g, col.b);
+    });
+
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+    return geo;
   }, [ac.positionHistory]);
 
   // Future path projection: 10min at current speed/heading
@@ -71,22 +101,33 @@ function AircraftSelection({ ac }: { ac: Aircraft }) {
     return [start, end];
   }, [ac.latitude, ac.longitude, ac.velocity, ac.heading, altKm]);
 
+  const futureLineRef = useRef<any>(null);
+  const ringRef = useRef<THREE.Mesh>(null);
+
+  useFrame(({ clock }) => {
+    if (futureLineRef.current?.material) {
+      futureLineRef.current.material.dashOffset = -(clock.getElapsedTime() * 0.12);
+    }
+    
+    if (ringRef.current) {
+      const t = (clock.getElapsedTime() % 2.0) / 2.0; // 0→1 over 2 seconds
+      const s = 1.0 + t * 0.35;
+      ringRef.current.scale.setScalar(s);
+      (ringRef.current.material as THREE.MeshBasicMaterial).opacity = 0.6 * (1 - t);
+    }
+  });
+
   return (
     <group>
       {/* Trail behind aircraft */}
-      {trailPoints && trailPoints.length >= 2 && (
-        <Line
-          points={trailPoints}
-          color="#00FF9C"
-          lineWidth={2}
-          transparent
-          opacity={0.6}
-        />
+      {trailGeo && (
+        <primitive object={new THREE.Line(trailGeo, new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.85, depthWrite: false }))} />
       )}
 
       {/* Future path projection (dashed) */}
       {futurePath && (
         <Line
+          ref={futureLineRef}
           points={futurePath}
           color="#00FFFF"
           lineWidth={1.5}
@@ -99,9 +140,9 @@ function AircraftSelection({ ac }: { ac: Aircraft }) {
       )}
 
       {/* Ground ring */}
-      <mesh position={surfPos} quaternion={quat}>
+      <mesh ref={ringRef} position={surfPos} quaternion={quat}>
         <ringGeometry args={[0.3, 0.35, 32]} />
-        <meshBasicMaterial color="#00FF9C" transparent opacity={0.6} side={THREE.DoubleSide} />
+        <meshBasicMaterial color="#00FF9C" transparent opacity={0.6} side={THREE.DoubleSide} depthWrite={false} />
       </mesh>
     </group>
   );

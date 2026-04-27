@@ -32,7 +32,6 @@ import { maritimeToMarkers } from "@/components/globe-layers/MaritimeGlobeLayer"
 import { gpsJamToMarkers } from "@/components/globe-layers/GpsJamGlobeLayer";
 import SelectionVisualLayer from "@/components/globe-layers/SelectionVisualLayer";
 import CorrelationArcLayer from "@/components/globe-layers/CorrelationArcLayer";
-import AircraftClickProxy from "@/components/globe-layers/AircraftClickProxy";
 
 const AUTO_ROTATE_STORAGE_KEY = "owe.globe.autorotate";
 
@@ -222,7 +221,7 @@ function CommandGlobeContent({
         lat: a.latitude,
         lng: a.longitude,
         altitude: Math.max(0.005, a.altitude / 100000),
-        size: 0.18,
+        size: 0.4, // Large invisible hitbox for react-globe.gl raycaster
         color: aircraftColor(a.altitude),
         label: `${a.callsign} • ${a.origin_country}`,
         category: "AIRCRAFT",
@@ -237,7 +236,7 @@ function CommandGlobeContent({
         lat: s.latitude,
         lng: s.longitude,
         altitude: Math.min(2.5, s.altitude / 6371),
-        size: 0.25,
+        size: 0.4, // Large invisible hitbox for react-globe.gl raycaster
         color: layer("satellites").color,
         label: `${s.name} • NORAD ${s.noradId}`,
         category: "SATELLITE",
@@ -417,10 +416,6 @@ function CommandGlobeContent({
           data={aircraftForGlobe} 
           visible={layer("aircraft").active} 
           selectedIcao={selectedEntity?.type === "aircraft" ? selectedEntity.id : null}
-        />
-        <AircraftClickProxy
-          data={aircraftForGlobe}
-          visible={layer("aircraft").active}
         />
 
         <SatelliteGlobeLayer data={satellites.data} visible={layer("satellites").active} />

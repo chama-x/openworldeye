@@ -198,6 +198,8 @@ function InstancedAircraftFleet({
       const targetHeading = flight.heading ?? 0;
 
       let state = interp.get(flight.icao24);
+      let bankAngle = 0;
+      
       if (!state) {
         state = { lat: targetLat, lon: targetLon, altKm: targetAltKm, heading: targetHeading };
         interp.set(flight.icao24, state);
@@ -209,11 +211,23 @@ function InstancedAircraftFleet({
         let dh = targetHeading - state.heading;
         if (dh > 180) dh -= 360;
         if (dh < -180) dh += 360;
-        state.heading += dh * lerpFactor;
+        
+        // Calculate bank angle based on turn rate
+        const turnRate = dh * lerpFactor; // degrees per frame
+        bankAngle = THREE.MathUtils.clamp(turnRate * 0.8, -25, 25) * (Math.PI / 180);
+        
+        state.heading += turnRate;
       }
 
       const pos = latLngAltToXYZ(state.lat, state.lon, state.altKm);
       const q = aircraftBasisQuaternion(state.lat, state.lon, state.heading);
+      
+      // Apply bank as a local roll rotation
+      if (Math.abs(bankAngle) > 0.001) {
+        const bankQuat = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), bankAngle);
+        q.multiply(bankQuat);
+      }
+      
       dummy.position.copy(pos);
       dummy.quaternion.copy(q);
 
@@ -254,11 +268,11 @@ function InstancedAircraftFleet({
 
   return (
     <group>
-      <instancedMesh ref={whiteRef} args={[geos.whiteGeo, matWhite, count]} frustumCulled={false} />
-      <instancedMesh ref={greyRef} args={[geos.greyGeo, matGrey, count]} frustumCulled={false} />
-      <instancedMesh ref={glassRef} args={[geos.glassGeo, matGlass, count]} frustumCulled={false} />
+      <instancedMesh ref={whiteRef} args={[geos.whiteGeo, matWhite, 1000]} count={count} frustumCulled={false} />
+      <instancedMesh ref={greyRef} args={[geos.greyGeo, matGrey, 1000]} count={count} frustumCulled={false} />
+      <instancedMesh ref={glassRef} args={[geos.glassGeo, matGlass, 1000]} count={count} frustumCulled={false} />
       {hasProp && geos.propGeo ? (
-        <instancedMesh ref={propRef} args={[geos.propGeo, matProp, count]} frustumCulled={false} />
+        <instancedMesh ref={propRef} args={[geos.propGeo, matProp, 1000]} count={count} frustumCulled={false} />
       ) : null}
     </group>
   );
