@@ -15,12 +15,27 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Globe, { type GlobeMethods } from "react-globe.gl";
+import * as THREE from "three";
 import { useOsintSnapshot } from "@/contexts/OsintDataContext";
 import { useDataLayers } from "@/contexts/DataLayersContext";
+import { useSelection, type EntityType } from "@/contexts/SelectionContext";
 import { MAX_AIRCRAFT_GLOBE_POINTS } from "@/lib/constants";
+import { aircraftColor, seismicColor } from "@/lib/threat-colors";
+import {
+  GlobeCameraProvider,
+  useGlobeCameraDistance,
+  AIRCRAFT_MODEL_OVERLAY_FADE_DIST,
+  SATELLITE_MODEL_OVERLAY_FADE_DIST,
+} from "@/contexts/GlobeCameraContext";
 import GlobeR3FOverlay from "@/components/GlobeR3FOverlay";
 import AircraftGlobeLayer from "@/components/globe-layers/AircraftGlobeLayer";
 import SatelliteGlobeLayer from "@/components/globe-layers/SatelliteGlobeLayer";
+import { buildConflictMarkers } from "@/components/globe-layers/ConflictGlobeLayer";
+import { maritimeToMarkers } from "@/components/globe-layers/MaritimeGlobeLayer";
+import { gpsJamToMarkers } from "@/components/globe-layers/GpsJamGlobeLayer";
+import SelectionVisualLayer from "@/components/globe-layers/SelectionVisualLayer";
+import CorrelationArcLayer from "@/components/globe-layers/CorrelationArcLayer";
+import AircraftClickProxy from "@/components/globe-layers/AircraftClickProxy";
 
 const AUTO_ROTATE_STORAGE_KEY = "owe.globe.autorotate";
 
@@ -38,7 +53,6 @@ export interface MarkerLike {
 export type DeckVisualTheme = "tactical" | "analytic";
 
 export interface CommandGlobeProps {
-  onSelectMarker?: (m: MarkerLike | null) => void;
   /** Tactical = dark earth; analytic = daylight blue marble. */
   visualTheme?: DeckVisualTheme;
 }
@@ -60,10 +74,11 @@ function readAutoRotatePreference(): boolean {
   return true;
 }
 
-export default function CommandGlobe({
-  onSelectMarker,
+function CommandGlobeContent({
   visualTheme = "tactical",
 }: CommandGlobeProps) {
+  const { cameraDistance } = useGlobeCameraDistance();
+  const { selectedEntity, setSelectedEntity, clearSelection } = useSelection();
   const globeRef = useRef<GlobeMethods | undefined>(undefined);
   const containerRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: 800, height: 600 });
@@ -73,8 +88,11 @@ export default function CommandGlobe({
       typeof window !== "undefined" &&
       Boolean(window.matchMedia?.("(prefers-reduced-motion: reduce)").matches),
   );
+  const [atmoPulse, setAtmoPulse] = useState(() => (visualTheme === "analytic" ? 0.12 : 0.18));
+  const pulseAnimRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const { aircraft, satellites, earthquakes, conflicts } = useOsintSnapshot();
+  const { aircraft, satellites, earthquakes, conflicts, maritime, gpsJam } = useOsintSnapshot();
   const { layer } = useDataLayers();
 
   useEffect(() => {
@@ -146,6 +164,62 @@ export default function CommandGlobe({
     ctrl.autoRotateSpeed = reduceMotion ? 0 : 0.35;
   }, [effectiveAutoRotate, reduceMotion]);
 
+  useEffect(() => {
+    if (reduceMotion) {
+      setAtmoPulse(visualTheme === "analytic" ? 0.12 : 0.18);
+      return;
+    }
+    const base = visualTheme === "analytic" ? 0.12 : 0.18;
+
+    const startPulse = () => {
+      let t = 0;
+      pulseAnimRef.current = setInterval(() => {
+        t += 0.04;
+        setAtmoPulse(base + Math.sin(t) * 0.035);
+      }, 50);
+    };
+
+    const resetIdle = () => {
+      if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+      if (pulseAnimRef.current) clearInterval(pulseAnimRef.current);
+      setAtmoPulse(base);
+      idleTimerRef.current = setTimeout(startPulse, 5000);
+    };
+
+    window.addEventListener("pointermove", resetIdle);
+    window.addEventListener("pointerdown", resetIdle);
+    resetIdle();
+
+    return () => {
+      window.removeEventListener("pointermove", resetIdle);
+      window.removeEventListener("pointerdown", resetIdle);
+      if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+      if (pulseAnimRef.current) clearInterval(pulseAnimRef.current);
+    };
+  }, [reduceMotion, visualTheme]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "f" || e.key === "F") {
+        globeRef.current?.pointOfView({ lat: 25, lng: 20, altitude: 2.5 }, 1000);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  // Phase 2: Camera Behavior on Selection
+  useEffect(() => {
+    if (!globeRef.current || !selectedEntity) return;
+    const currentView = globeRef.current.pointOfView();
+    // Gentle zoom to 85% of current altitude
+    const newAltitude = Math.max(0.1, currentView.altitude * 0.85);
+    globeRef.current.pointOfView(
+      { lat: selectedEntity.lat, lng: selectedEntity.lon, altitude: newAltitude },
+      1200
+    );
+  }, [selectedEntity]);
+
   const aircraftPoints = useMemo<MarkerLike[]>(
     () =>
       aircraftForGlobe.map((a) => ({
@@ -153,12 +227,12 @@ export default function CommandGlobe({
         lng: a.longitude,
         altitude: Math.max(0.005, a.altitude / 100000),
         size: 0.18,
-        color: layer("aircraft").color,
+        color: aircraftColor(a.altitude),
         label: `${a.callsign} • ${a.origin_country}`,
         category: "AIRCRAFT",
         raw: a,
       })),
-    [aircraftForGlobe, layer],
+    [aircraftForGlobe],
   );
 
   const satellitePoints = useMemo<MarkerLike[]>(
@@ -183,45 +257,49 @@ export default function CommandGlobe({
         lng: e.longitude,
         altitude: 0.01,
         size: 0.15 + e.magnitude * 0.08,
-        color: layer("earthquakes").color,
+        color: seismicColor(e.magnitude),
         label: `M${e.magnitude} • ${e.place}`,
         category: "EARTHQUAKE",
         raw: e,
       })),
-    [earthquakes.data, layer],
+    [earthquakes.data],
   );
 
-  const conflictPoints = useMemo<MarkerLike[]>(
-    () =>
-      conflicts.data.map((c) => ({
-        lat: c.latitude,
-        lng: c.longitude,
-        altitude: 0.012,
-        size: c.severity === "high" ? 0.5 : c.severity === "medium" ? 0.35 : 0.25,
-        color: layer("conflicts").color,
-        label: `${c.type} • ${c.description}`,
-        category: "CONFLICT",
-        raw: c,
-      })),
-    [conflicts.data, layer],
+  const { markers: conflictPoints, rings: conflictRingsFromEvents } = useMemo(
+    () => buildConflictMarkers(conflicts.data),
+    [conflicts.data],
+  );
+
+  const maritimePoints = useMemo(
+    () => (layer("maritime").active ? maritimeToMarkers(maritime.data) : []),
+    [maritime.data, layer],
+  );
+
+  const gpsJamPoints = useMemo(
+    () => (layer("gpsjam").active ? gpsJamToMarkers(gpsJam.data) : []),
+    [gpsJam.data, layer],
   );
 
   const allPoints = useMemo(
-    () => [...aircraftPoints, ...satellitePoints, ...earthquakePoints, ...conflictPoints],
-    [aircraftPoints, satellitePoints, earthquakePoints, conflictPoints],
+    () => [
+      ...aircraftPoints,
+      ...satellitePoints,
+      ...earthquakePoints,
+      ...conflictPoints,
+      ...maritimePoints,
+      ...gpsJamPoints,
+    ],
+    [aircraftPoints, satellitePoints, earthquakePoints, conflictPoints, maritimePoints, gpsJamPoints],
   );
 
+  const hideAircraftGlobePoints =
+    layer("aircraft").active && cameraDistance < AIRCRAFT_MODEL_OVERLAY_FADE_DIST;
+  const hideSatelliteGlobePoints =
+    layer("satellites").active && cameraDistance < SATELLITE_MODEL_OVERLAY_FADE_DIST;
+
   const ringsData = useMemo(
-    () =>
-      conflictPoints.map((c) => ({
-        lat: c.lat,
-        lng: c.lng,
-        maxR: c.size * 8,
-        propagationSpeed: 2,
-        repeatPeriod: 1800,
-        color: c.color,
-      })),
-    [conflictPoints],
+    () => (layer("conflicts").active ? conflictRingsFromEvents : []),
+    [layer, conflictRingsFromEvents],
   );
 
   return (
@@ -258,13 +336,18 @@ export default function CommandGlobe({
         bumpImageUrl="https://unpkg.com/three-globe/example/img/earth-topology.png"
         showAtmosphere={true}
         atmosphereColor={analyticGlobe ? "#7dd3fc" : "#00FF9C"}
-        atmosphereAltitude={analyticGlobe ? 0.12 : 0.18}
+        atmosphereAltitude={atmoPulse}
         pointsData={allPoints}
         pointLat={(d: object) => (d as MarkerLike).lat}
         pointLng={(d: object) => (d as MarkerLike).lng}
         pointAltitude={(d: object) => (d as MarkerLike).altitude}
         pointRadius={(d: object) => (d as MarkerLike).size}
-        pointColor={(d: object) => (d as MarkerLike).color}
+        pointColor={(d: object) => {
+          const m = d as MarkerLike;
+          if (m.category === "AIRCRAFT" && hideAircraftGlobePoints) return "rgba(0,0,0,0)";
+          if (m.category === "SATELLITE" && hideSatelliteGlobePoints) return "rgba(0,0,0,0)";
+          return m.color;
+        }}
         pointResolution={6}
         pointLabel={(d: object) => {
           const m = d as MarkerLike;
@@ -286,7 +369,38 @@ export default function CommandGlobe({
             </div>
           </div>`;
         }}
-        onPointClick={(p: object) => onSelectMarker?.(p as MarkerLike)}
+        onPointClick={(p: object) => {
+          const m = p as MarkerLike;
+          
+          let entityType: EntityType;
+          switch (m.category) {
+            case "AIRCRAFT": entityType = "aircraft"; break;
+            case "SATELLITE": entityType = "satellite"; break;
+            case "EARTHQUAKE": entityType = "earthquake"; break;
+            case "CONFLICT": entityType = "conflict"; break;
+            case "MARITIME": entityType = "vessel"; break;
+            case "GPSJAM": entityType = "gpsjam"; break;
+            default: return; // Should not happen
+          }
+          
+          let id = "";
+          if (entityType === "aircraft") id = (m.raw as any).icao24 || (m.raw as any).hex;
+          else if (entityType === "vessel") id = (m.raw as any).mmsi;
+          else if (entityType === "conflict") id = (m.raw as any).id;
+          else if (entityType === "satellite") id = (m.raw as any).noradId;
+          else if (entityType === "earthquake") id = (m.raw as any).id;
+          else if (entityType === "gpsjam") id = `${m.lat}-${m.lng}`;
+
+          setSelectedEntity({
+            type: entityType,
+            id: id,
+            lat: m.lat,
+            lon: m.lng,
+            data: m.raw as Record<string, unknown>,
+            selectedAt: new Date()
+          });
+        }}
+        onGlobeClick={clearSelection}
         ringsData={ringsData}
         ringLat={(d: object) => (d as { lat: number }).lat}
         ringLng={(d: object) => (d as { lng: number }).lng}
@@ -305,10 +419,35 @@ export default function CommandGlobe({
         <directionalLight position={[120, 60, 80]} intensity={1.8} castShadow={false} />
         <directionalLight position={[-100, -50, -100]} intensity={0.25} color="#3355aa" />
 
-        <AircraftGlobeLayer data={aircraftForGlobe} visible={layer("aircraft").active} />
+        <AircraftGlobeLayer 
+          data={aircraftForGlobe} 
+          visible={layer("aircraft").active} 
+          selectedIcao={selectedEntity?.type === "aircraft" ? selectedEntity.id : null}
+        />
+        <AircraftClickProxy
+          data={aircraftForGlobe}
+          visible={layer("aircraft").active && cameraDistance < AIRCRAFT_MODEL_OVERLAY_FADE_DIST}
+        />
 
         <SatelliteGlobeLayer data={satellites.data} visible={layer("satellites").active} />
+        
+        <SelectionVisualLayer />
+        <CorrelationArcLayer />
+
+        {/* Invisible globe sphere — clicking it clears selection */}
+        <mesh onClick={clearSelection}>
+          <sphereGeometry args={[100, 32, 16]} />
+          <meshBasicMaterial visible={false} side={THREE.BackSide} />
+        </mesh>
       </GlobeR3FOverlay>
     </div>
+  );
+}
+
+export default function CommandGlobe(props: CommandGlobeProps) {
+  return (
+    <GlobeCameraProvider>
+      <CommandGlobeContent {...props} />
+    </GlobeCameraProvider>
   );
 }

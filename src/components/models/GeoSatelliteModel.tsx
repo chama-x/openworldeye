@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, type JSX } from 'react';
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
@@ -60,7 +60,6 @@ function createGeoSatGeometries() {
   const segmentWidth = panelWidth / 3;
   const gap = 0.05;
   const standoff = 1.0; // Distance from bus to start of solar array
-  const panelCenterX = busWidth / 2 + standoff + panelWidth / 2; // 1.2 + 1.0 + 4.0 = 6.2
 
   for (let i = 0; i < 3; i++) {
     // Left side panels (X-axis)

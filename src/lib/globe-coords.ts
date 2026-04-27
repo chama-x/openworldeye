@@ -19,19 +19,32 @@ export function latLngAltToXYZ(lat: number, lng: number, altKm: number): THREE.V
 }
 
 /**
- * Compute a quaternion that orients a model's +Z axis along
- * the heading direction on the globe surface at lat/lng.
- * heading: degrees clockwise from north (OpenSky heading)
+ * Quaternion that maps model space (+Y up from wings, +Z nose) onto the globe:
+ * local Y → surface normal (radial outward), local Z → ground track (heading).
+ * headingDeg: clockwise from north (ADS-B track / true heading).
  */
-export function headingQuaternion(lat: number, lng: number, heading: number): THREE.Quaternion {
+export function aircraftBasisQuaternion(lat: number, lng: number, headingDeg: number): THREE.Quaternion {
   const pos = latLngAltToXYZ(lat, lng, 0);
   const normal = pos.clone().normalize();
-  const north = new THREE.Vector3(0, 1, 0);
-  north
-    .sub(normal.clone().multiplyScalar(normal.dot(new THREE.Vector3(0, 1, 0))))
-    .normalize();
-  const q = new THREE.Quaternion().setFromAxisAngle(normal, (-heading * Math.PI) / 180);
-  const forward = north.clone().applyQuaternion(q);
-  const m = new THREE.Matrix4().lookAt(new THREE.Vector3(0, 0, 0), forward, normal);
-  return new THREE.Quaternion().setFromRotationMatrix(m);
+  const worldUp = new THREE.Vector3(0, 1, 0);
+  let north = worldUp.clone().sub(normal.clone().multiplyScalar(worldUp.dot(normal)));
+  if (north.lengthSq() < 1e-8) {
+    north = new THREE.Vector3(0, 0, 1).sub(normal.clone().multiplyScalar(normal.z));
+  }
+  north.normalize();
+  const qHeading = new THREE.Quaternion().setFromAxisAngle(normal, (-headingDeg * Math.PI) / 180);
+  const forward = north.clone().applyQuaternion(qHeading).normalize();
+
+  const yAxis = normal.clone();
+  const zAxis = forward.clone();
+  const xAxis = new THREE.Vector3().crossVectors(yAxis, zAxis).normalize();
+  zAxis.crossVectors(xAxis, yAxis).normalize();
+
+  const mat = new THREE.Matrix4().makeBasis(xAxis, yAxis, zAxis);
+  return new THREE.Quaternion().setFromRotationMatrix(mat);
+}
+
+/** @deprecated Prefer aircraftBasisQuaternion — same implementation */
+export function headingQuaternion(lat: number, lng: number, heading: number): THREE.Quaternion {
+  return aircraftBasisQuaternion(lat, lng, heading);
 }

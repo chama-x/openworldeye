@@ -2,10 +2,12 @@
  * DataLayersContext - Toggle and manage active OSINT data layers
  *
  * Each layer corresponds to a free-tier API endpoint:
- *   - aircraft  → OpenSky Network
+ *   - aircraft  → ADSB.fi Open Data
  *   - satellites → CelesTrak (TLE) + satellite.js propagation
  *   - earthquakes → USGS Earthquakes feed
- *   - conflicts → ACLED-style sample feed
+ *   - conflicts → ACLED
+ *   - maritime → AISStream.io (WebSocket)
+ *   - gpsjam → GPSJam.org export
  *
  * Polling intervals respect free-tier rate limits.
  */
@@ -19,7 +21,14 @@ import {
   type ReactNode,
 } from "react";
 
-export type LayerId = "aircraft" | "satellites" | "earthquakes" | "conflicts" | "infrastructure";
+export type LayerId =
+  | "aircraft"
+  | "satellites"
+  | "earthquakes"
+  | "conflicts"
+  | "maritime"
+  | "gpsjam"
+  | "infrastructure";
 
 export interface LayerConfig {
   id: LayerId;
@@ -37,11 +46,11 @@ const DEFAULT_LAYERS: LayerConfig[] = [
     id: "aircraft",
     label: "AIR",
     description: "Live commercial & general aviation flights",
-    source: "OpenSky Network",
+    source: "ADSB.fi",
     color: "#00FF9C",
     icon: "✈",
     active: true,
-    pollIntervalSec: 25,
+    pollIntervalSec: 8,
   },
   {
     id: "satellites",
@@ -67,11 +76,31 @@ const DEFAULT_LAYERS: LayerConfig[] = [
     id: "conflicts",
     label: "OPS",
     description: "Conflict events & tactical incidents",
-    source: "ACLED-style feed",
+    source: "ACLED",
     color: "#FF3333",
     icon: "✶",
     active: true,
-    pollIntervalSec: 120,
+    pollIntervalSec: 1800,
+  },
+  {
+    id: "maritime",
+    label: "SEA",
+    description: "AIS vessel positions (AISStream)",
+    source: "AISStream.io",
+    color: "#7DD3FC",
+    icon: "⚓",
+    active: true,
+    pollIntervalSec: 15,
+  },
+  {
+    id: "gpsjam",
+    label: "JAMMING",
+    description: "GPS interference / spoofing indicators",
+    source: "GPSJam.org",
+    color: "#FFB800",
+    icon: "◎",
+    active: true,
+    pollIntervalSec: 3600,
   },
   {
     id: "infrastructure",

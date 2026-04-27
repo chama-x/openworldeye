@@ -5,13 +5,18 @@
  * Camera is synced every frame to the globe.gl camera so R3F objects
  * appear to sit on the globe surface.
  *
- * pointer-events: none — globe.gl handles all mouse/touch interaction.
+ * Pointer events: The R3F canvas listens for pointer events (clicks,
+ * hover) on its own transparent canvas so R3F meshes can be clicked.
+ * Globe.gl still receives pointer events because R3F's raycaster only
+ * consumes events that hit R3F objects — misses fall through to
+ * the globe below via CSS pointer-events on the wrapper div.
  */
 
 import type { ReactNode, RefObject } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import type { GlobeMethods } from "react-globe.gl";
 import * as THREE from "three";
+import { useGlobeCameraDistance } from "@/contexts/GlobeCameraContext";
 
 interface CameraSyncProps {
   globeRef: RefObject<GlobeMethods | undefined>;
@@ -32,6 +37,19 @@ function CameraSync({ globeRef }: CameraSyncProps) {
     camera.projectionMatrixInverse.copy(globeCam.projectionMatrixInverse);
   });
 
+  return null;
+}
+
+/**
+ * Publishes globe camera distance to React (throttled) so the deck can hide
+ * globe.gl point sprites when instanced 3D models are in view.
+ */
+function CameraDistanceSync({ globeRef }: CameraSyncProps) {
+  const { setCameraDistanceIfChanged } = useGlobeCameraDistance();
+  useFrame(() => {
+    const globeCam = globeRef.current?.camera() as THREE.PerspectiveCamera | undefined;
+    if (globeCam) setCameraDistanceIfChanged(globeCam.position.length());
+  });
   return null;
 }
 
@@ -58,6 +76,14 @@ export default function GlobeR3FOverlay({
       }}
     >
       <Canvas
+        onCreated={({ gl }) => {
+          // Allow pointer events on the canvas so R3F raycaster works.
+          // Clicks that don't hit an R3F object fall through to globe.gl
+          // because the parent div has pointer-events: none — the canvas
+          // itself is the only element capturing events, and only R3F
+          // meshes with onClick will consume them.
+          gl.domElement.style.pointerEvents = "auto";
+        }}
         style={{
           background: "transparent",
           width: `${width}px`,
@@ -68,6 +94,7 @@ export default function GlobeR3FOverlay({
         frameloop="always"
       >
         <CameraSync globeRef={globeRef} />
+        <CameraDistanceSync globeRef={globeRef} />
         {children}
       </Canvas>
     </div>

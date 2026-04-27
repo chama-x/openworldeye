@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import CommandGlobe, { type DeckVisualTheme, type MarkerLike } from "@/components/CommandGlobe";
+import { Radio, Ship } from "lucide-react";
+import CommandGlobe, { type DeckVisualTheme } from "@/components/CommandGlobe";
 import GlobalTimelineScrubber from "@/components/GlobalTimelineScrubber";
 import IntelligenceBrief from "@/components/IntelligenceBrief";
 import { useDataLayers, type LayerId } from "@/contexts/DataLayersContext";
@@ -13,7 +14,6 @@ function utcClock(d: Date): string {
 
 export default function CommandDeck() {
   const [theme, setTheme] = useState<DeckVisualTheme>("tactical");
-  const [selected, setSelected] = useState<MarkerLike | null>(null);
   const [wallUtc, setWallUtc] = useState(() => new Date());
   const { currentTime, mode } = useGlobalClock();
 
@@ -35,15 +35,21 @@ export default function CommandDeck() {
   }, []);
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setSelected(null);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    const id = window.setInterval(() => setWallUtc(new Date()), 1000);
+    return () => clearInterval(id);
   }, []);
 
   const { layers, toggleLayer } = useDataLayers();
   const osint = useOsintSnapshot();
+
+  const layerCounts: Partial<Record<LayerId, number>> = {
+    aircraft: osint.aircraft.data.length,
+    satellites: osint.satellites.data.length,
+    earthquakes: osint.earthquakes.data.length,
+    conflicts: osint.conflicts.data.length,
+    maritime: osint.maritime.data.length,
+    gpsjam: osint.gpsJam.data.length,
+  };
 
   const isAnalytic = theme === "analytic";
 
@@ -52,12 +58,19 @@ export default function CommandDeck() {
       osint.aircraft.data.length +
       osint.satellites.data.length +
       osint.earthquakes.data.length +
-      osint.conflicts.data.length
+      osint.conflicts.data.length +
+      osint.maritime.data.length +
+      osint.gpsJam.data.length
     );
   }, [osint]);
 
   const loadingAny =
-    osint.aircraft.loading || osint.satellites.loading || osint.earthquakes.loading;
+    osint.aircraft.loading ||
+    osint.satellites.loading ||
+    osint.earthquakes.loading ||
+    osint.conflicts.loading ||
+    osint.maritime.loading ||
+    osint.gpsJam.loading;
 
   const feedStrip = useMemo(
     () =>
@@ -66,6 +79,8 @@ export default function CommandDeck() {
         feedStripPart("ORB", osint.satellites.meta, osint.satellites.loading),
         feedStripPart("SEIS", osint.earthquakes.meta, osint.earthquakes.loading),
         feedStripPart("OPS", osint.conflicts.meta, osint.conflicts.loading),
+        feedStripPart("SEA", osint.maritime.meta, osint.maritime.loading),
+        feedStripPart("JAM", osint.gpsJam.meta, osint.gpsJam.loading),
       ].join("   ·   "),
     [osint],
   );
@@ -216,8 +231,14 @@ export default function CommandDeck() {
                       : "border-[rgba(255,255,255,0.06)] bg-transparent opacity-60 hover:opacity-90"
                 }`}
               >
-                <span className="text-base" style={{ color: layerRow.color }} aria-hidden>
-                  {layerRow.icon}
+                <span className="flex shrink-0 items-center justify-center" style={{ color: layerRow.color }} aria-hidden>
+                  {layerRow.id === "maritime" ? (
+                    <Ship className="h-4 w-4" strokeWidth={1.75} />
+                  ) : layerRow.id === "gpsjam" ? (
+                    <Radio className="h-4 w-4" strokeWidth={1.75} />
+                  ) : (
+                    <span className="text-base">{layerRow.icon}</span>
+                  )}
                 </span>
                 <span className="flex min-w-0 flex-1 flex-col">
                   <span
@@ -226,6 +247,11 @@ export default function CommandDeck() {
                     }`}
                   >
                     {layerRow.label}
+                    {layerCounts[layerRow.id] !== undefined && layerCounts[layerRow.id]! > 0 ? (
+                      <span className="ml-1.5 font-mono text-[9px] tabular-nums opacity-40">
+                        {layerCounts[layerRow.id]!.toLocaleString()}
+                      </span>
+                    ) : null}
                   </span>
                   <span
                     className={`truncate font-mono text-[9px] ${
@@ -241,12 +267,7 @@ export default function CommandDeck() {
         </aside>
 
         <main role="main" aria-label="Globe" className="relative min-h-[280px] flex-1 scanlines">
-          <CommandGlobe
-            visualTheme={theme}
-            onSelectMarker={(m) => {
-              setSelected(m);
-            }}
-          />
+          <CommandGlobe visualTheme={theme} />
         </main>
 
         <aside
@@ -260,8 +281,6 @@ export default function CommandDeck() {
         >
           <IntelligenceBrief
             visualTheme={theme}
-            selected={selected}
-            onClearSelection={() => setSelected(null)}
           />
         </aside>
       </div>

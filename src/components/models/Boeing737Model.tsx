@@ -1,9 +1,10 @@
-import { useMemo } from 'react';
+import { useMemo, type JSX } from "react";
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { b737Tess } from '@/lib/model-geometry-constants';
 
 export function Boeing737Model(props: JSX.IntrinsicElements['group']) {
-  const { whiteGeo, greyGeo, glassGeo } = useMemo(() => createB737Geometries(), []);
+  const { whiteGeo, greyGeo, glassGeo } = useMemo(() => createB737Geometries("gallery"), []);
 
   return (
     <group {...props} dispose={null}>
@@ -29,15 +30,15 @@ export function Boeing737Model(props: JSX.IntrinsicElements['group']) {
 // --------------------------------------------------------
 // Geometry Generation (1 Unit = 1 Meter)
 // --------------------------------------------------------
-function createB737Geometries() {
+export function createB737Geometries(quality: "gallery" | "globe" = "gallery") {
   const whiteGeos: THREE.BufferGeometry[] = [];
   const greyGeos: THREE.BufferGeometry[] = [];
   const glassGeos: THREE.BufferGeometry[] = [];
 
-  // High quality segments for single model viewing
-  const radialSegments = 32;
-  const sphereRadial = 32;
-  const sphereHeight = 16;
+  const t = b737Tess(quality);
+  const radialSegments = t.radial;
+  const sphereRadial = t.sphere;
+  const sphereHeight = t.sphereH;
 
   // Boeing 737-800 Dimensions
   const totalLength = 39.5;

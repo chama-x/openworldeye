@@ -1,9 +1,10 @@
-import { useMemo } from 'react';
+import { useMemo, type JSX } from "react";
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { b777Tess } from '@/lib/model-geometry-constants';
 
 export function Boeing777Model(props: JSX.IntrinsicElements['group']) {
-  const { whiteGeo, greyGeo, glassGeo } = useMemo(() => createB777Geometries(), []);
+  const { whiteGeo, greyGeo, glassGeo } = useMemo(() => createB777Geometries("gallery"), []);
 
   return (
     <group {...props} dispose={null}>
@@ -29,15 +30,15 @@ export function Boeing777Model(props: JSX.IntrinsicElements['group']) {
 // --------------------------------------------------------
 // Geometry Generation (1 Unit = 1 Meter)
 // --------------------------------------------------------
-function createB777Geometries() {
+export function createB777Geometries(quality: "gallery" | "globe" = "gallery") {
   const whiteGeos: THREE.BufferGeometry[] = [];
   const greyGeos: THREE.BufferGeometry[] = [];
   const glassGeos: THREE.BufferGeometry[] = [];
 
-  // Smooth curves needed for widebody scale
-  const radialSegments = 48;
-  const sphereRadial = 48;
-  const sphereHeight = 24;
+  const t = b777Tess(quality);
+  const radialSegments = t.radial;
+  const sphereRadial = t.sphere;
+  const sphereHeight = t.sphereH;
 
   // Boeing 777-300ER Dimensions
   const totalLength = 73.9;

@@ -179,7 +179,7 @@ export default function GlobalTimelineScrubber({
                   : "font-mono text-[9px] leading-tight text-[rgba(0,255,156,0.35)]"
               }
             >
-              Scrub affects TLE satellite propagation. Live OpenSky/USGS payloads stay “now” until historical feeds
+              Scrub affects TLE satellite propagation. Live ADSB/USGS payloads stay “now” until historical feeds
               exist.
             </p>
           )}

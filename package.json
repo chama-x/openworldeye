@@ -2,7 +2,7 @@
   "name": "openworldeye",
   "private": true,
   "version": "0.1.0",
-  "description": "OpenWorldEye — tactical OSINT globe (OpenSky, CelesTrak TLEs, USGS, sample events) on react-globe.gl",
+  "description": "OpenWorldEye — tactical OSINT globe (ADSB.fi, CelesTrak, USGS, ACLED, AISStream, GPSJam) on react-globe.gl",
   "type": "module",
   "keywords": [
     "osint",
@@ -11,7 +11,9 @@
     "react",
     "vite",
     "threejs",
-    "opensky",
+    "adsb",
+    "acled",
+    "ais",
     "celestrak",
     "usgs"
   ],
@@ -29,11 +31,15 @@
   "dependencies": {
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.6.0",
+    "lucide-react": "^0.468.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-globe.gl": "^2.31.3",
     "satellite.js": "^5.0.0",
-    "three": "^0.170.0"
+    "three": "^0.184.0"
+  },
+  "overrides": {
+    "three": "$three"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.0.14",

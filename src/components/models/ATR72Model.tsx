@@ -1,9 +1,10 @@
-import { useMemo } from 'react';
+import { useMemo, type JSX } from "react";
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { atrTess } from '@/lib/model-geometry-constants';
 
 export function ATR72Model(props: JSX.IntrinsicElements['group']) {
-  const { whiteGeo, greyGeo, glassGeo, propGeo } = useMemo(() => createATR72Geometries(), []);
+  const { whiteGeo, greyGeo, glassGeo, propGeo } = useMemo(() => createATR72Geometries("gallery"), []);
 
   return (
     <group {...props} dispose={null}>
@@ -34,16 +35,17 @@ export function ATR72Model(props: JSX.IntrinsicElements['group']) {
 // --------------------------------------------------------
 // Geometry Generation (1 Unit = 1 Meter)
 // --------------------------------------------------------
-function createATR72Geometries() {
+export function createATR72Geometries(quality: "gallery" | "globe" = "gallery") {
   const whiteGeos: THREE.BufferGeometry[] = [];
   const greyGeos: THREE.BufferGeometry[] = [];
   const glassGeos: THREE.BufferGeometry[] = [];
   const propGeos: THREE.BufferGeometry[] = [];
 
-  // High quality segments for single model viewing
-  const radialSegments = 32;
-  const sphereRadial = 32;
-  const sphereHeight = 16;
+  const t = atrTess(quality);
+  const radialSegments = t.radial;
+  const sphereRadial = t.sphere;
+  const sphereHeight = t.sphereH;
+  const propDiscSegs = Math.max(5, t.radial);
 
   // ATR 72 Dimensions
   const totalLength = 27.17;
@@ -106,7 +108,7 @@ function createATR72Geometries() {
   exhaustGeo.rotateX(Math.PI / 2);
 
   // Propeller Disc (represents spinning blades)
-  const propDiscGeo = new THREE.CylinderGeometry(1.9, 1.9, 0.05, 32);
+  const propDiscGeo = new THREE.CylinderGeometry(1.9, 1.9, 0.05, propDiscSegs);
   propDiscGeo.rotateX(Math.PI / 2);
 
   const createEngine = (xOffset: number) => {
@@ -122,7 +124,7 @@ function createATR72Geometries() {
     exhaust.translate(xOffset, offsetY, offsetZ);
 
     // Add spinner cone
-    const spinnerGeo = new THREE.ConeGeometry(0.3, 0.6, 16);
+    const spinnerGeo = new THREE.ConeGeometry(0.3, 0.6, Math.max(4, Math.floor(t.radial / 2)));
     spinnerGeo.rotateX(Math.PI / 2);
     spinnerGeo.translate(0, 0, engineLength / 2 + 0.3);
     spinnerGeo.translate(xOffset, offsetY, offsetZ);

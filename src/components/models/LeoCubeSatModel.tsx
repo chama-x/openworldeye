@@ -1,9 +1,9 @@
-import { useMemo } from 'react';
-import * as THREE from 'three';
-import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { useMemo, type JSX } from "react";
+import * as THREE from "three";
+import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 
-export function LeoCubeSatModel(props: JSX.IntrinsicElements['group']) {
-  const { bodyGeo, panelGeo } = useMemo(() => createCubeSatGeometries(), []);
+export function LeoCubeSatModel(props: JSX.IntrinsicElements["group"]) {
+  const { bodyGeo, panelGeo } = useMemo(() => createCubeSatGeometries("gallery"), []);
 
   return (
     <group {...props} dispose={null}>
@@ -24,9 +24,10 @@ export function LeoCubeSatModel(props: JSX.IntrinsicElements['group']) {
 // --------------------------------------------------------
 // Geometry Generation (1 Unit = 1 Meter)
 // --------------------------------------------------------
-function createCubeSatGeometries() {
+export function createCubeSatGeometries(quality: "gallery" | "globe" = "gallery") {
   const bodyGeos: THREE.BufferGeometry[] = [];
   const panelGeos: THREE.BufferGeometry[] = [];
+  const cylSeg = quality === "globe" ? 4 : 8;
 
   // CubeSat Dimensions
   const bodyWidth = 0.1;
@@ -40,7 +41,7 @@ function createCubeSatGeometries() {
   // 2. ANTENNA STUB
   const antennaRadius = 0.0025; // 0.005 diameter
   const antennaLength = 0.08;
-  const antennaGeo = new THREE.CylinderGeometry(antennaRadius, antennaRadius, antennaLength, 8);
+  const antennaGeo = new THREE.CylinderGeometry(antennaRadius, antennaRadius, antennaLength, cylSeg);
   antennaGeo.translate(0, bodyHeight / 2 + antennaLength / 2, 0); // On top of body
   bodyGeos.push(antennaGeo);
 

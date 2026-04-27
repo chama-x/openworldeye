@@ -1,9 +1,10 @@
-import { useMemo } from 'react';
+import { useMemo, type JSX } from "react";
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { e190Tess } from '@/lib/model-geometry-constants';
 
 export function EmbraerE190Model(props: JSX.IntrinsicElements['group']) {
-  const { whiteGeo, greyGeo, glassGeo } = useMemo(() => createE190Geometries(), []);
+  const { whiteGeo, greyGeo, glassGeo } = useMemo(() => createE190Geometries("gallery"), []);
 
   return (
     <group {...props} dispose={null}>
@@ -29,15 +30,15 @@ export function EmbraerE190Model(props: JSX.IntrinsicElements['group']) {
 // --------------------------------------------------------
 // Geometry Generation (1 Unit = 1 Meter)
 // --------------------------------------------------------
-function createE190Geometries() {
+export function createE190Geometries(quality: "gallery" | "globe" = "gallery") {
   const whiteGeos: THREE.BufferGeometry[] = [];
   const greyGeos: THREE.BufferGeometry[] = [];
   const glassGeos: THREE.BufferGeometry[] = [];
 
-  // High quality segments for single model viewing
-  const radialSegments = 32;
-  const sphereRadial = 32;
-  const sphereHeight = 16;
+  const t = e190Tess(quality);
+  const radialSegments = t.radial;
+  const sphereRadial = t.sphere;
+  const sphereHeight = t.sphereH;
 
   // Embraer E190 Dimensions
   const totalLength = 36.24;

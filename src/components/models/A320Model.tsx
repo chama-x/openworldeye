@@ -1,9 +1,10 @@
-import { useMemo } from 'react';
+import { useMemo, type JSX } from 'react';
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { a320Tess } from '@/lib/model-geometry-constants';
 
 export function A320Model(props: JSX.IntrinsicElements['group']) {
-  const { whiteGeo, greyGeo, glassGeo } = useMemo(() => createA320Geometries(), []);
+  const { whiteGeo, greyGeo, glassGeo } = useMemo(() => createA320Geometries("gallery"), []);
 
   return (
     <group {...props} dispose={null}>
@@ -29,15 +30,15 @@ export function A320Model(props: JSX.IntrinsicElements['group']) {
 // --------------------------------------------------------
 // Geometry Generation (1 Unit = 1 Meter)
 // --------------------------------------------------------
-function createA320Geometries() {
+export function createA320Geometries(quality: "gallery" | "globe" = "gallery") {
   const whiteGeos: THREE.BufferGeometry[] = [];
   const greyGeos: THREE.BufferGeometry[] = [];
   const glassGeos: THREE.BufferGeometry[] = [];
 
-  // High quality segments for single model viewing
-  const radialSegments = 32;
-  const sphereRadial = 32;
-  const sphereHeight = 16;
+  const t = a320Tess(quality);
+  const radialSegments = t.radial;
+  const sphereRadial = t.sphere;
+  const sphereHeight = t.sphereH;
 
   const totalLength = 37.57;
   const radius = 1.975; // 3.95m diameter
