@@ -2,5 +2,27 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "vite",
   "buildCommand": "npm run build",
-  "outputDirectory": "dist"
+  "outputDirectory": "dist",
+  "rewrites": [
+    {
+      "source": "/api/adsb/:path*",
+      "destination": "https://opendata.adsb.fi/api/v2/:path*"
+    },
+    {
+      "source": "/api/celestrak",
+      "destination": "https://celestrak.org/NORAD/elements/gp.php"
+    },
+    {
+      "source": "/api/acled/token",
+      "destination": "https://acleddata.com/oauth/token"
+    },
+    {
+      "source": "/api/acled/read",
+      "destination": "https://acleddata.com/api/acled/read"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
 }

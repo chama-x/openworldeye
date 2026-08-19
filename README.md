@@ -1,85 +1,61 @@
 # OpenWorldEye
 
-**OPEN WORLD EYE** · Open geospatial OSINT globe: live aircraft (OpenSky), satellite positions from CelesTrak TLEs + `satellite.js`, USGS earthquakes, and sample conflict markers—rendered with **react-globe.gl** and a tactical command-deck UI (clock scrub, layer rail, intelligence panel).
+Real-time geospatial fusion engine on an interactive WebGL globe tracking satellite orbits, live air traffic, and seismic activity.
 
-| | |
-| --- | --- |
-| **Live demo** | **[openworldeye.vercel.app](https://openworldeye.vercel.app/)** — production (Vite static build on Vercel) |
-| **Repository** | [github.com/chama-x/openworldeye](https://github.com/chama-x/openworldeye) |
-| **Docs** | [docs/README.md](docs/README.md) · [Publish checklist](docs/PUBLISH_CHECKLIST.md) · [Branding](BRANDING.md) |
+![OpenWorldEye Live Demo](docs/assets/openworldeye-demo.gif)
 
-Production is hosted on **Vercel** only ([dashboard](https://vercel.com/dashboard)). Redeploy from the Vercel UI or with `vercel --prod` after `git push`.
+---
 
-## Quick start
+## Problem
 
-```bash
-npm install
-npm run dev
-```
+Open-source geospatial intelligence is fragmented across disparate radar tracking APIs, orbital element catalogues, and geological feeds with varying coordinate systems and update rates. Rendering hundreds of heterogeneous moving entities concurrently in the browser often causes severe frame drops and high memory pressure. OpenWorldEye unifies live ADS-B flight feeds, SGP4 orbital propagation, and seismic monitoring onto a single hardware-accelerated 3D globe with client-side caching and fallback resilience.
 
-- **Build:** `npm run build`
-- **Preview build:** `npm run preview`
+---
 
-## Deploy with Vercel
+## Architecture
 
-1. Install the CLI: `npm i -g vercel`
-2. From this directory (logged in: `vercel login`):
+- **Orbital Propagation Engine:** SGP4/TLE satellite propagation in real-time via `satellite.js` with browser-level element caching.
+- **Flight & ADS-B Pipeline:** Live air traffic tracking via ADSB.fi Open Data with rate-limit dampening and coordinate interpolation.
+- **Seismic & Geospatial Feeds:** Real-time USGS earthquake feeds and tactical conflict telemetry.
+- **Hardware-Accelerated Visualization:** WebGL globe rendering powered by `react-globe.gl` and Three.js with level-of-detail model management.
+- **Resilient Fallback Layer:** Deterministic offline simulations and cached state transitions to guarantee continuous visualization under API rate limits.
 
-```bash
-vercel link    # first time: link to a Vercel team/project
-vercel         # preview deployment
-vercel --prod  # production URL — put it in the table above + GitHub About → Website
-```
+---
 
-3. **Environment variables** (Vercel → Project → Settings → Environment Variables), mirror [`.env.example`](.env.example): optional `VITE_GROQ_API_KEY`, `VITE_GROQ_MODEL`. Redeploy after changes.
+## Getting Started
 
-4. **GitHub integration (recommended):** In Vercel, **Add New Project → Import** `chama-x/openworldeye`. Every push to `main` can auto-deploy previews/production per your Vercel settings.
+### Prerequisites
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fchama-x%2Fopenworldeye)
+- Node.js 18+
+- npm or pnpm
 
-## Stack
-
-- Vite 6 · React 19 · TypeScript
-- Tailwind CSS v4 (`@tailwindcss/vite`)
-- `react-globe.gl` / Three.js · `satellite.js` (SGP4)
-
-## Environment variables
-
-| Variable | Purpose |
-| --- | --- |
-| `VITE_GROQ_API_KEY` | Optional — enables **Synthesize** in the Intelligence panel (Groq OpenAI-compatible API). |
-| `VITE_GROQ_MODEL` | Optional — defaults to `llama-3.1-8b-instant`. |
-
-Copy [`.env.example`](.env.example) → `.env.local` for local dev. Use Vercel env UI for production.
-
-## CORS and networks
-
-All feeds use browser `fetch()`. Corporate networks or blockers may break OpenSky/USGS; the app falls back to sample data where implemented in `src/lib/osint-services.ts`.
-
-## Project layout
-
-```
-src/
-  CommandDeck.tsx          # Shell: header, rails, globe, intelligence, timeline
-  components/              # Globe, timeline scrubber, intelligence brief
-  contexts/                # Global clock, data layers, shared OSINT snapshot
-  hooks/                   # Polling hooks (free-tier aware)
-  lib/osint-services.ts    # API + propagation
-docs/
-  design-brief.md          # UI / tactical direction
-  research/                # External WorldView reference material (not the product name)
-vercel.json                # Vercel framework + build output
-```
-
-## Git clone
+### Installation
 
 ```bash
+# Clone the repository
 git clone https://github.com/chama-x/openworldeye.git
 cd openworldeye
+
+# Install dependencies
 npm install
+
+# Configure environment variables (optional)
+cp .env.example .env.local
+
+# Run the development server
+npm run dev
+# Open http://localhost:5173
 ```
 
-After first Vercel production deploy, complete **[docs/PUBLISH_CHECKLIST.md](docs/PUBLISH_CHECKLIST.md)** (GitHub About URL, topics, README live link).
+---
+
+## What I'd Explore Next
+
+- High-density point cloud visualizer for space debris tracking.
+- WebGPU compute shaders for client-side batch SGP4 propagation of 10,000+ orbital objects.
+- Real-time ADS-B multilateration time-difference-of-arrival (TDOA) solver in WebAssembly.
+
+---
 
 ## License
 
